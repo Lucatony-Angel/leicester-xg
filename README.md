@@ -85,6 +85,19 @@ The defensive number mixes goalkeeping (Kasper Schmeichel), last-ditch blocks an
 
 Full tables (all 20 teams, play patterns, assist types): [figures/leicester_results.md](figures/leicester_results.md).
 
+## Analysis: Leicester vs the other champions
+
+Did Leicester win the way champions usually do? Each 2015/16 champion is compared with the average team in its own league, because leagues differ in how many goals they produce.
+
+![Leicester vs Barcelona, Juventus and PSG](figures/champions.png)
+
+- **The usual champions dominate the ball and the shot count.** Barcelona, Juventus and PSG took 21% to 29% more shots than their league average and allowed 18% to 30% fewer. Leicester took 4% more and allowed 5% more.
+- **The giants also out-finished their xG**, by 9 to 18 goals, with elite forwards doing what xG doesn't credit. Leicester's attack finished at an average rate (−1.2).
+- **All three topped their league on expected points. Leicester ranked 4th.** Leicester's xG difference was +0.36 per match, against +0.89 to +1.40 for the others.
+- **Leicester leaned on counterattacks:** 1.8 times their league's share of xG from counters, compared with 0.5 to 1.1 times for the other champions.
+
+Bayern Munich isn't included because the free data covers only Leverkusen's Bundesliga matches. PSG's numbers cover 37 of their 38 matches. Full table: [figures/champions_results.md](figures/champions_results.md).
+
 ## Limitations
 
 - One season only, so a team's luck and skill can't be separated over time.
@@ -107,16 +120,19 @@ python src/build_db.py     # DuckDB tables and features
 python src/train.py        # models + data/processed/shots_with_xg.parquet
 python src/evaluate.py     # metrics, calibration, SHAP figures
 python src/analysis.py     # Leicester analysis figures and tables
+python src/champions.py    # champions comparison
 
-pytest                     # feature and simulation tests
+pytest                     # feature, simulation and app tests
+streamlit run app/streamlit_app.py
 ```
 
 ## Repo structure
 
 ```text
 sql/            shots, features, game state, formations (DuckDB)
-src/            download, build, freeze frame features, train, evaluate, simulate, analysis
-tests/          pytest tests for features and simulations
+src/            download, build, freeze frame features, train, evaluate, simulate, analysis, champions
+app/            Streamlit app (reads data/processed/ and figures/ only)
+tests/          pytest tests for features, simulations and every app page
 notebooks/      exploration only
 data/processed/ shots_with_xg.parquet, matches.parquet (used by the app)
 figures/        charts and results tables

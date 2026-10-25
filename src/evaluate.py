@@ -118,7 +118,10 @@ def main() -> None:
     shots = pd.read_parquet(PROCESSED_DIR / "shots_with_xg.parquet")
 
     table = results_table(test, cv)
-    (FIGURES_DIR / "model_results.md").write_text(table.round(4).to_markdown())
+    display = table.rename(columns={"log_loss": "Log loss", "brier": "Brier", "roc_auc": "ROC AUC",
+                                    "total_xg": "Total xG", "goals": "Goals", "cv_log_loss": "CV log loss"})
+    display = display.rename_axis("Model").round({"Total xG": 1}).round(4).astype(object).fillna("—")
+    (FIGURES_DIR / "model_results.md").write_text(display.to_markdown())
     print(table.round(4).to_string())
     xgb, sb = table.loc["XGBoost"], table.loc["StatsBomb xG"]
     print(f"\nXGBoost log loss is {100 * (xgb.log_loss / sb.log_loss - 1):.1f}% above StatsBomb's; "

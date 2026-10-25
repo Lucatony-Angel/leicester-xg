@@ -1,0 +1,77 @@
+"""Shared data loading and chart helpers for the app pages.
+
+The app only reads data/processed/ and figures/. No downloading or training here.
+"""
+
+import sys
+from pathlib import Path
+
+import altair as alt
+import pandas as pd
+import streamlit as st
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from simulate import expected_points, p_at_least, p_at_most, simulate_goals  # noqa: E402
+from team_stats import (CHAMPIONS, LEICESTER, PL, champion_summary, load, ordinal, rank,  # noqa: E402
+                        share_vs_league, team_breakdown)
+
+FIGURES_DIR = ROOT / "figures"
+LEICESTER_BLUE = "#003090"
+GRAY, LIGHT_GRAY, INK = "#9a9a9a", "#d4d4d4", "#2b2b2b"
+LEAGUES = {
+    "Premier League": "England - Premier League",
+    "La Liga": "Spain - La Liga",
+    "Serie A": "Italy - Serie A",
+    "Ligue 1": "France - Ligue 1",
+    "Bundesliga (Leverkusen only)": "Germany - 1. Bundesliga",
+}
+
+
+@st.cache_data
+def get_data() -> tuple[pd.DataFrame, pd.DataFrame]:
+    return load()
+
+
+@st.cache_data
+def get_breakdown(competition: str) -> pd.DataFrame:
+    shots, matches = get_data()
+    return team_breakdown(shots, matches, competition)
+
+
+@st.cache_data
+def get_expected_points(competition: str) -> pd.DataFrame:
+    shots, matches = get_data()
+    return expected_points(shots[shots.competition == competition], matches[matches.competition == competition])
+
+
+@st.cache_data
+def get_simulation(xg: tuple) -> pd.Series:
+    return pd.Series(simulate_goals(list(xg)))
+
+
+def short_name(team: str) -> str:
+    return team.replace(" Hotspur", "").replace(" Albion", "").replace("Paris Saint-Germain", "PSG")
+
+
+def highlight(team_field: str, team: str) -> alt.Color:
+    """Leicester blue for the highlighted team, gray for everyone else."""
+    return alt.condition(alt.datum[team_field] == team, alt.value(LEICESTER_BLUE), alt.value(LIGHT_GRAY))
+
+
+def simulation_chart(sims: pd.Series, actual: int) -> alt.LayerChart:
+    counts = sims.value_counts(normalize=True).rename_axis("goals").reset_index(name="share")
+    bars = alt.Chart(counts).mark_bar(color=LIGHT_GRAY, cornerRadiusTopLeft=2, cornerRadiusTopRight=2).encode(
+        x=alt.X("goals:Q", title="Goals in a simulated season", scale=alt.Scale(zero=False, nice=False)),
+        y=alt.Y("share:Q", title=None, axis=alt.Axis(format="%")),
+        tooltip=[alt.Tooltip("goals:Q", title="Goals"), alt.Tooltip("share:Q", title="Share of seasons", format=".1%")],
+    )
+    rule = alt.Chart(pd.DataFrame({"goals": [actual], "label": [f"Actual: {actual}"]})).mark_rule(
+        color=LEICESTER_BLUE, strokeWidth=3).encode(x="goals:Q", tooltip=alt.Tooltip("label:N", title=None))
+    return (bars + rule).properties(height=220)
+
+
+def credit() -> None:
+    st.caption("Data: [StatsBomb Open Data](https://github.com/statsbomb/open-data). "
+               "Data provided by StatsBomb.")

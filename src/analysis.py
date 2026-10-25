@@ -12,62 +12,11 @@ import pandas as pd
 from mplsoccer import VerticalPitch
 
 from simulate import expected_points, p_at_least, p_at_most, simulate_goals
-from train import PROCESSED_DIR, ROOT
+from team_stats import LEICESTER, PL, ROOT, load, ordinal, rank, share_vs_league, team_breakdown
 
 FIGURES_DIR = ROOT / "figures"
-PL = "England - Premier League"
-LEICESTER = "Leicester City"
 LEICESTER_BLUE = "#003090"
 GRAY, LIGHT_GRAY, INK, MUTED = "#9a9a9a", "#d4d4d4", "#2b2b2b", "#8a8a8a"
-
-
-def load() -> tuple[pd.DataFrame, pd.DataFrame]:
-    shots = pd.read_parquet(PROCESSED_DIR / "shots_with_xg.parquet")
-    matches = pd.read_parquet(PROCESSED_DIR / "matches.parquet")
-    return shots, matches
-
-
-def team_breakdown(shots: pd.DataFrame, matches: pd.DataFrame, competition: str) -> pd.DataFrame:
-    """Volume, quality and finishing for and against, per team. Non-penalty shots."""
-    s = shots[(shots.competition == competition) & ~shots.is_penalty]
-    m = matches[matches.competition == competition]
-    games = pd.concat([m.home_team, m.away_team]).value_counts().rename("matches")
-    attack = s.groupby("team").agg(shots=("shot_id", "size"), xg=("xg", "sum"), goals=("is_goal", "sum"))
-    defense = s.groupby("opponent").agg(shots_against=("shot_id", "size"), xga=("xg", "sum"),
-                                        goals_against=("is_goal", "sum"))
-    pens = shots[(shots.competition == competition) & shots.is_penalty].groupby("team").agg(
-        penalties=("shot_id", "size"), penalty_goals=("is_goal", "sum"))
-    t = pd.concat([games, attack, defense.rename_axis("team"), pens], axis=1).fillna(0)
-    t["shots_per_match"] = t.shots / t.matches
-    t["xg_per_shot"] = t.xg / t.shots
-    t["finishing"] = t.goals - t.xg
-    t["shots_against_per_match"] = t.shots_against / t.matches
-    t["xga_per_shot"] = t.xga / t.shots_against
-    t["goals_prevented"] = t.xga - t.goals_against
-    t["xg_diff"] = t.xg - t.xga
-    return t
-
-
-def rank(t: pd.DataFrame, col: str, ascending: bool = False) -> int:
-    return int(t[col].rank(ascending=ascending, method="min")[LEICESTER])
-
-
-def ordinal(n: int) -> str:
-    suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
-    return f"{n}{suffix}"
-
-
-def share_vs_league(shots: pd.DataFrame, column: str) -> pd.DataFrame:
-    """Share of Leicester's non-penalty xG from each category, vs the rest of the PL."""
-    s = shots[(shots.competition == PL) & ~shots.is_penalty]
-    is_lei = s.team == LEICESTER
-    out = pd.DataFrame({
-        "leicester_xg": s[is_lei].groupby(column).xg.sum(),
-        "leicester_share": s[is_lei].groupby(column).xg.sum() / s[is_lei].xg.sum(),
-        "rest_of_pl_share": s[~is_lei].groupby(column).xg.sum() / s[~is_lei].xg.sum(),
-    }).fillna(0)
-    out["ratio"] = out.leicester_share / out.rest_of_pl_share
-    return out.sort_values("leicester_xg", ascending=False)
 
 
 def style(ax):
@@ -241,8 +190,8 @@ def main() -> None:
         f"rank {rank(t, 'xga_per_shot', ascending=True)} of 20 (lowest = 1)",
         f"- Penalties: {lei.penalties:.0f} taken ({lei.penalty_goals:.0f} scored), rank {rank(t, 'penalties')} of 20",
         f"- xG difference: {lei.xg_diff:+.1f}, rank {rank(t, 'xg_diff')} of 20",
-        f"- Counterattacks: {patterns.loc['From Counter', 'leicester_share']:.1%} of Leicester's xG vs "
-        f"{patterns.loc['From Counter', 'rest_of_pl_share']:.1%} for the rest of the PL "
+        f"- Counterattacks: {patterns.loc['From Counter', 'team_share']:.1%} of Leicester's xG vs "
+        f"{patterns.loc['From Counter', 'rest_of_league_share']:.1%} for the rest of the PL "
         f"({patterns.loc['From Counter', 'ratio']:.1f}x)",
         "",
         "## Simulations (10,000 seasons)",
