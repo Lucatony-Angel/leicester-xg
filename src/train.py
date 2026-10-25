@@ -37,7 +37,8 @@ TARGET = "is_goal"
 
 def load_shots() -> pd.DataFrame:
     con = duckdb.connect(str(DB_PATH), read_only=True)
-    shots = con.execute("SELECT * FROM shot_table").df()
+    # Fixed order: CV folds and simulations depend on row order, so rebuilds must match.
+    shots = con.execute("SELECT * FROM shot_table ORDER BY match_id, period, minute, second, shot_id").df()
     con.close()
     shots[BOOLEAN] = shots[BOOLEAN].astype(int)
     return shots

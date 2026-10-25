@@ -14,8 +14,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from simulate import expected_points, p_at_least, p_at_most, simulate_goals  # noqa: E402
-from team_stats import (CHAMPIONS, LEICESTER, PL, champion_summary, load, ordinal, rank,  # noqa: E402
-                        share_vs_league, team_breakdown)
+from team_stats import (CHAMPIONS, GAME_STATES, LEICESTER, PL, champion_summary, formation_profile,  # noqa: E402
+                        load, load_formation_minutes, ordinal, rank, share_vs_league, team_breakdown,
+                        team_formation_profiles)
 
 FIGURES_DIR = ROOT / "figures"
 LEICESTER_BLUE = "#003090"
@@ -44,6 +45,41 @@ def get_breakdown(competition: str) -> pd.DataFrame:
 def get_expected_points(competition: str) -> pd.DataFrame:
     shots, matches = get_data()
     return expected_points(shots[shots.competition == competition], matches[matches.competition == competition])
+
+
+@st.cache_data
+def get_formation_minutes() -> pd.DataFrame:
+    return load_formation_minutes()
+
+
+@st.cache_data
+def get_formation_profile(competition: str | None, game_state: str | None) -> pd.DataFrame:
+    shots, _ = get_data()
+    return formation_profile(shots, get_formation_minutes(), competition=competition, game_state=game_state)
+
+
+@st.cache_data
+def get_team_formation_profiles(formation: str) -> pd.DataFrame:
+    shots, _ = get_data()
+    return team_formation_profiles(shots, get_formation_minutes(), formation)
+
+
+@st.cache_data
+def get_champions() -> pd.DataFrame:
+    shots, matches = get_data()
+    return champion_summary(shots, matches)
+
+
+@st.cache_data
+def get_players() -> pd.DataFrame:
+    """One row per player: non-penalty shots, goals, xG and the team(s) they shot for."""
+    shots, _ = get_data()
+    s = shots[~shots.is_penalty]
+    players = s.groupby("player_id").agg(
+        player=("player", "first"), teams=("team", lambda t: ", ".join(dict.fromkeys(t))),
+        competition=("competition", "first"), shots=("shot_id", "size"), goals=("is_goal", "sum"), xg=("xg", "sum"))
+    players["label"] = players.player + " (" + players.teams + ", " + players.shots.astype(str) + " shots)"
+    return players.sort_values("xg", ascending=False)
 
 
 @st.cache_data
