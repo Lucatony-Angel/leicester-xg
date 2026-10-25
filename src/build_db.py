@@ -20,7 +20,7 @@ def main() -> None:
         CREATE OR REPLACE TABLE matches AS
         SELECT * FROM read_parquet('{RAW_DIR / "matches.parquet"}')
     """)
-    print(f"events: {con.sql('SELECT count(*) FROM events').fetchone()[0]:,} rows")
+    print(f"events: {con.execute('SELECT count(*) FROM events').fetchone()[0]:,} rows")
 
     for sql_file in sorted(SQL_DIR.glob("*.sql")):
         con.execute(sql_file.read_text())
