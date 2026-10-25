@@ -12,6 +12,8 @@ SELECT
     -- analysis only
     gs.goal_diff, gs.game_state,
     fm.formation, fm.opponent_formation,
+    -- post-shot, for the defensive shot funnel only (never a model feature)
+    s.outcome,
     -- benchmark and target
     s.statsbomb_xg,
     s.is_goal

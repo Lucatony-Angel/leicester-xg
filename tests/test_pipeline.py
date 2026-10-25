@@ -1,6 +1,7 @@
 """Run the pipeline scripts into a temp folder and check they reproduce the committed outputs."""
 
 import json
+import shutil
 
 import duckdb
 import pandas as pd
@@ -12,6 +13,7 @@ import champions
 import evaluate
 import formations
 import freeze_frame
+import funnel
 import train
 from conftest import FIGURES, PROCESSED
 
@@ -36,9 +38,12 @@ def test_analysis_reproduces_results(out_dir):
         assert (out_dir / png).stat().st_size > 10_000
 
 
-def test_champions_reproduces_results(out_dir):
+def test_champions_reproduces_results(out_dir, monkeypatch):
+    monkeypatch.setattr(champions, "PROCESSED_DIR", out_dir)
     champions.main()
     assert_same(out_dir, "champions_results.md")
+    pd.testing.assert_frame_equal(pd.read_parquet(out_dir / "champions.parquet"),
+                                  pd.read_parquet(PROCESSED / "champions.parquet"))
     assert (out_dir / "champions.png").stat().st_size > 10_000
 
 
@@ -54,8 +59,17 @@ def test_evaluate_reproduces_results(out_dir):
         pytest.skip("prediction files are created by src/train.py and not committed")
     evaluate.main()
     assert_same(out_dir, "model_results.md")
+    assert_same(out_dir, "example_shots.md")
     for png in ["calibration.png", "shap_summary.png", "shap_vardy_goal.png"]:
         assert (out_dir / png).stat().st_size > 10_000
+
+
+def test_funnel_reproduces_committed_file(tmp_path, monkeypatch):
+    shutil.copy(PROCESSED / "shots_with_xg.parquet", tmp_path)
+    monkeypatch.setattr(funnel, "PROCESSED_DIR", tmp_path)
+    funnel.main()
+    pd.testing.assert_frame_equal(pd.read_parquet(tmp_path / "funnel.parquet"),
+                                  pd.read_parquet(PROCESSED / "funnel.parquet"))
 
 
 def test_models_train_on_a_sample(shots):

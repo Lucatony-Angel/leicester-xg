@@ -213,3 +213,36 @@ def team_formation_profiles(shots: pd.DataFrame, minutes: pd.DataFrame, formatio
         if c.minutes.sum() >= min_minutes:
             rows[(competition, team)] = per90(c.droplevel(["competition", "team"]), weights, 90)
     return pd.DataFrame(rows).T.rename_axis(["competition", "team"])
+
+
+ON_TARGET = ["Goal", "Saved", "Saved to Post"]
+
+
+def load_funnel() -> pd.DataFrame:
+    return pd.read_parquet(PROCESSED_DIR / "funnel.parquet")
+
+
+def defense_funnel(shots: pd.DataFrame, funnel: pd.DataFrame, competition: str) -> pd.DataFrame:
+    """Split each defending team's goals prevented (xG against - goals) into three stages.
+
+    blocks:        xG against - expected goals given which shots were actually blocked
+    missed_target: that - expected goals given which shots actually hit the target
+    goalkeeping:   that - goals actually conceded
+    The three add up exactly to goals prevented. Non-penalty shots.
+    """
+    s = shots[(shots.competition == competition) & ~shots.is_penalty].merge(funnel, on="shot_id")
+    got_through = s.outcome != "Blocked"
+    on_target = s.outcome.isin(ON_TARGET)
+    s = s.assign(after_blocks=(s.p_on_target * s.p_goal_on_target).where(got_through, 0.0),
+                 after_misses=s.p_goal_on_target.where(on_target, 0.0),
+                 blocked=(~got_through).astype(int), on_target=on_target.astype(int))
+    t = s.groupby("opponent").agg(shots_against=("shot_id", "size"), xga=("xg", "sum"),
+                                  after_blocks=("after_blocks", "sum"), after_misses=("after_misses", "sum"),
+                                  goals_against=("is_goal", "sum"), blocked=("blocked", "sum"),
+                                  expected_blocked=("p_not_blocked", lambda p: (1 - p).sum()),
+                                  on_target=("on_target", "sum")).rename_axis("team")
+    t["blocks"] = t.xga - t.after_blocks
+    t["missed_target"] = t.after_blocks - t.after_misses
+    t["goalkeeping"] = t.after_misses - t.goals_against
+    t["goals_prevented"] = t.xga - t.goals_against
+    return t

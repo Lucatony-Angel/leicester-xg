@@ -10,7 +10,8 @@ import pandas as pd
 import pytest
 from sklearn.metrics import log_loss, roc_auc_score
 
-from team_stats import GAME_STATES
+from conftest import PROCESSED
+from team_stats import GAME_STATES, ON_TARGET
 from train import BOOLEAN, CATEGORICAL, NUMERIC
 
 BUCKETS = {-2: "-2 or worse", -1: "-1", 0: "0", 1: "+1", 2: "+2 or better"}
@@ -133,3 +134,40 @@ def test_formation_minutes(formation_minutes, matches):
     assert totals.between(88, 110).all()
     assert (formation_minutes.minutes > 0).all()
     assert set(formation_minutes.game_state) <= set(GAME_STATES)
+
+
+# --- funnel.parquet (shot funnel stage probabilities) ---
+
+@pytest.fixture(scope="module")
+def funnel(np_shots):
+    f = pd.read_parquet(PROCESSED / "funnel.parquet")
+    return np_shots.merge(f, on="shot_id")
+
+
+def test_funnel_covers_every_non_penalty_shot(np_shots, funnel):
+    assert len(funnel) == len(np_shots)
+
+
+def test_funnel_probabilities(funnel):
+    for col in ["p_not_blocked", "p_on_target", "p_goal_on_target"]:
+        assert funnel[col].between(0, 1).all() and funnel[col].notna().all()
+
+
+@pytest.mark.parametrize("stage, applies, passes", [
+    ("p_not_blocked", lambda s: s.outcome.notna(), lambda s: s.outcome != "Blocked"),
+    ("p_on_target", lambda s: s.outcome != "Blocked", lambda s: s.outcome.isin(ON_TARGET)),
+    ("p_goal_on_target", lambda s: s.outcome.isin(ON_TARGET), lambda s: s.is_goal == 1),
+])
+def test_funnel_stages_calibrated(funnel, stage, applies, passes):
+    s = funnel[applies(funnel)]
+    y = passes(s).astype(int)
+    assert s[stage].mean() == pytest.approx(y.mean(), abs=0.005)
+    bins = pd.DataFrame({"p": s[stage], "y": y}).groupby(pd.qcut(s[stage], 10, labels=False, duplicates="drop"))
+    by_bin = bins.agg(p=("p", "mean"), y=("y", "mean"))
+    assert (abs(by_bin.p - by_bin.y) < 0.04).all(), by_bin
+
+
+def test_outcomes_known(shots):
+    known = {"Goal", "Saved", "Saved to Post", "Blocked", "Off T", "Wayward", "Post", "Saved Off Target"}
+    assert set(shots.outcome) <= known
+    assert ((shots.outcome == "Goal") == (shots.is_goal == 1)).all()

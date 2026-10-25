@@ -19,10 +19,11 @@ from team_stats import (  # noqa: E402
     GAME_STATES,
     LEICESTER,
     PL,
-    champion_summary,
+    defense_funnel,
     formation_profile,
     load,
     load_formation_minutes,
+    load_funnel,
     ordinal,
     rank,
     share_vs_league,
@@ -78,8 +79,14 @@ def get_team_formation_profiles(formation: str) -> pd.DataFrame:
 
 @st.cache_data
 def get_champions() -> pd.DataFrame:
-    shots, matches = get_data()
-    return champion_summary(shots, matches)
+    # Precomputed by src/champions.py (40,000 simulated seasons): too slow to redo on page load.
+    return pd.read_parquet(ROOT / "data" / "processed" / "champions.parquet")
+
+
+@st.cache_data
+def get_defense_funnel(competition: str) -> pd.DataFrame:
+    shots, _ = get_data()
+    return defense_funnel(shots, load_funnel(), competition)
 
 
 @st.cache_data

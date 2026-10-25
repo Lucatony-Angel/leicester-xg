@@ -12,7 +12,19 @@ from matplotlib.ticker import MaxNLocator
 from mplsoccer import VerticalPitch
 
 from simulate import expected_points, p_at_least, p_at_most, simulate_goals
-from team_stats import LEICESTER, PL, ROOT, load, ordinal, rank, share_vs_league, team_breakdown
+from team_stats import (
+    LEICESTER,
+    ON_TARGET,
+    PL,
+    ROOT,
+    defense_funnel,
+    load,
+    load_funnel,
+    ordinal,
+    rank,
+    share_vs_league,
+    team_breakdown,
+)
 
 FIGURES_DIR = ROOT / "figures"
 LEICESTER_BLUE = "#003090"
@@ -122,6 +134,43 @@ def plot_expected_points(xpts: pd.DataFrame) -> None:
     plt.close(fig)
 
 
+FUNNEL_PANELS = [("blocks", "Blocks"), ("missed_target", "Opponents missing the target"),
+                 ("goalkeeping", "Goalkeeping")]
+
+
+def plot_defense_funnel(d: pd.DataFrame) -> None:
+    fig, axes = plt.subplots(1, 3, figsize=(13, 6), sharex=True)
+    for ax, (col, label) in zip(axes, FUNNEL_PANELS, strict=True):
+        v = d[col].sort_values()
+        ax.barh([n.replace(" Hotspur", "").replace(" Albion", "") for n in v.index], v.values,
+                color=team_colors(v.index), height=0.75)
+        ax.axvline(0, color=MUTED, linewidth=1)
+        style(ax)
+        ax.tick_params(axis="y", length=0, labelsize=8)
+        ax.set_title(label, loc="left", fontsize=10, color=INK)
+        ax.set_xlabel("Goals prevented vs a 5-league average", color=INK)
+    lei = d.loc[LEICESTER]
+    order = sorted(FUNNEL_PANELS, key=lambda p: -lei[p[0]])
+    parts = ", ".join(f"{label.lower()} {lei[col]:+.1f} ({ordinal(rank(d, col))})" for col, label in order)
+    fig.suptitle(f"Leicester's {lei.goals_prevented:+.1f} goals prevented: {parts}",
+                 x=0.03, ha="left", fontsize=11.5, color=INK)
+    fig.text(0.03, -0.04, "Each stage compares what happened with what shots of the same pre-shot quality do on "
+             "average across the 5 leagues: get blocked, miss the target, or beat the keeper.\nThe three add up to "
+             "xG against minus goals conceded. PL shots were blocked a little more often than the 5-league average, "
+             "so most PL teams are positive on blocks.", fontsize=8, color=MUTED)
+    fig.tight_layout(rect=(0, 0, 1, 0.96))
+    fig.savefig(FIGURES_DIR / "defense_funnel.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+def player_p_values(shots: pd.DataFrame, min_shots: int = 30) -> pd.Series:
+    """p-value of each player's goal total at average finishing, for players with min_shots+ shots."""
+    s = shots[~shots.is_penalty]
+    counts = s.groupby("player_id").size()
+    return pd.Series({pid: p_at_least(g.is_goal.sum(), simulate_goals(g.xg))
+                      for pid, g in s[s.player_id.isin(counts[counts >= min_shots].index)].groupby("player_id")})
+
+
 def plot_shot_map(shots: pd.DataFrame) -> None:
     lei = shots[(shots.team == LEICESTER) & ~shots.is_penalty]
     goals, misses = lei[lei.is_goal == 1], lei[lei.is_goal == 0]
@@ -160,6 +209,19 @@ def main() -> None:
         sims[label] = {"sims": s, "actual": actual, "shots": len(d), "xg": d.xg.sum(), "p": p_fn(actual, s),
                        "range_90": tuple(np.percentile(s, [5, 95]).astype(int))}
 
+    funnel = defense_funnel(shots, load_funnel(), PL)
+    on_target_against = against[against.outcome.isin(ON_TARGET)].merge(load_funnel(), on="shot_id")
+    keeper_sims = simulate_goals(on_target_against.p_goal_on_target)
+    keeper_p = p_at_most(int(on_target_against.is_goal.sum()), keeper_sims)
+
+    # Multiple comparisons: how surprising are these p-values given how many we could have looked at?
+    conceded_p = sims["Leicester goals conceded"]["p"]
+    team_conceded_p = {team: p_at_most(int(g.is_goal.sum()), simulate_goals(g.xg))
+                       for team, g in pl_shots[~pl_shots.is_penalty].groupby("opponent")}
+    any_team_chance = 1 - (1 - conceded_p) ** len(team_conceded_p)
+    players = player_p_values(shots)
+    mahrez_p = sims["Riyad Mahrez"]["p"]
+
     patterns = share_vs_league(shots, "play_pattern")
     assists = share_vs_league(shots, "assist_type")
 
@@ -168,6 +230,7 @@ def main() -> None:
     plot_simulations(sims)
     plot_expected_points(xpts)
     plot_shot_map(shots)
+    plot_defense_funnel(funnel)
 
     lei, lx = t.loc[LEICESTER], xpts.loc[LEICESTER]
     cols = ["shots_per_match", "xg_per_shot", "xg", "goals", "finishing", "shots_against_per_match",
@@ -201,6 +264,35 @@ def main() -> None:
         "|---|---|---|---|---|---|",
         *[f"| {k} | {v['shots']} | {v['xg']:.1f} | {v['actual']} | {v['range_90'][0]} to {v['range_90'][1]} | "
           f"{v['p']:.3f} |" for k, v in sims.items()],
+        "",
+        "## Defense: where the goals were prevented",
+        "",
+        "Each stage compares what happened with what shots of the same pre-shot quality do on average across the",
+        "5 leagues. Ranks are within the Premier League.",
+        "",
+        *[f"- {label}: {funnel.loc[LEICESTER, col]:+.1f}, rank {rank(funnel, col)} of 20"
+          for col, label in FUNNEL_PANELS],
+        f"- Total: {funnel.loc[LEICESTER, 'goals_prevented']:+.1f} (blocks + missed target + goalkeeping)",
+        f"- Shots blocked: {funnel.loc[LEICESTER, 'blocked']:.0f} of {funnel.loc[LEICESTER, 'shots_against']:.0f} "
+        f"({funnel.loc[LEICESTER, 'blocked'] / funnel.loc[LEICESTER, 'shots_against']:.1%}), "
+        f"{funnel.loc[LEICESTER, 'expected_blocked']:.1f} expected for shots of that kind "
+        f"({funnel.loc[LEICESTER, 'blocked'] - funnel.loc[LEICESTER, 'expected_blocked']:+.0f})",
+        f"- Goalkeeping: {on_target_against.is_goal.sum()} goals from {len(on_target_against)} on-target shots "
+        f"with {on_target_against.p_goal_on_target.sum():.1f} expected; p = {keeper_p:.3f}",
+        "",
+        "| Team | Blocks | Missed target | Goalkeeping | Goals prevented |",
+        "|---|---|---|---|---|",
+        *[f"| {team} | {r.blocks:+.1f} | {r.missed_target:+.1f} | {r.goalkeeping:+.1f} | {r.goals_prevented:+.1f} |"
+          for team, r in funnel.sort_values("goals_prevented", ascending=False).iterrows()],
+        "",
+        "## Multiple comparisons",
+        "",
+        f"- Leicester's goals conceded p = {conceded_p:.3f}. Teams in the PL with a p this low or lower: "
+        f"{sum(p <= conceded_p for p in team_conceded_p.values())} of {len(team_conceded_p)}. If all 20 teams "
+        f"were average, the chance at least one reaches this p by luck is {any_team_chance:.0%}.",
+        f"- Mahrez's finishing p = {mahrez_p:.3f}. Of {len(players)} players with 30+ non-penalty shots across "
+        f"5 leagues, {(players <= mahrez_p).sum()} have a p this low or lower; about "
+        f"{len(players) * mahrez_p:.0f} would by chance.",
         "",
         "## All 20 teams",
         "",

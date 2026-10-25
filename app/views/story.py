@@ -10,6 +10,7 @@ from common import (
     credit,
     get_breakdown,
     get_data,
+    get_defense_funnel,
     get_expected_points,
     get_simulation,
     highlight,
@@ -76,15 +77,40 @@ groups = [
     ("Riyad Mahrez", lei_np[lei_np.player.str.contains("Mahrez")], p_at_least),
 ]
 cols = st.columns(2)
+p_values = {}
 for i, (label, d, p_fn) in enumerate(groups):
     sims = get_simulation(tuple(d.xg))
     actual = int(d.is_goal.sum())
-    p = p_fn(actual, sims.values)
+    p = p_values[label] = p_fn(actual, sims.values)
     with cols[i % 2]:
         st.markdown(f"**{label}**: {actual} actual from {d.xg.sum():.1f} xG (p = {p:.3f})")
         st.altair_chart(simulation_chart(sims, actual), width="stretch")
-st.caption("p = share of simulated seasons at least as extreme as the real one. "
-           "Goals conceded mixes goalkeeping, blocks and luck: xG can't separate them.")
+any_team = 1 - (1 - p_values["Leicester goals conceded"]) ** len(t)
+st.caption(f"p = share of simulated seasons at least as extreme as the real one. With {len(t)} teams, the chance "
+           f"that at least one defense gets this far ahead of its xG by luck alone is {any_team:.0%}.")
+
+funnel = get_defense_funnel(PL)
+lf = funnel.loc[LEICESTER]
+stages = [("blocks", "Blocks"), ("missed_target", "Opponents missing the target"), ("goalkeeping", "Goalkeeping")]
+st.subheader(f"Where the {lf.goals_prevented:.1f} goals were prevented: spread across all three stages")
+st.write("Every shot against has to avoid a block, hit the target and beat the keeper. Each stage compares what "
+         "happened with what shots of the same quality do on average across the 5 leagues.")
+cols = st.columns(3)
+shared = alt.Scale(domain=[min(funnel[f].min() for f, _ in stages), max(funnel[f].max() for f, _ in stages)])
+for col, (field, label) in zip(cols, stages, strict=True):
+    col.metric(label, f"{lf[field]:+.1f}", f"{ordinal(rank(funnel, field))} of 20", delta_color="off",
+               delta_arrow="off", border=True)
+    data = funnel.reset_index().assign(name=lambda d: d.team.map(short_name))
+    chart = alt.Chart(data).mark_bar(cornerRadiusEnd=3).encode(
+        y=alt.Y("name:N", sort=alt.EncodingSortField(field, order="descending"), title=None,
+                axis=alt.Axis(labelOverlap=False)),
+        x=alt.X(f"{field}:Q", title="Goals prevented", scale=shared),
+        color=highlight("team", LEICESTER),
+        tooltip=[alt.Tooltip("team:N", title="Team"), alt.Tooltip(f"{field}:Q", title=label, format="+.1f")],
+    )
+    col.altair_chart(chart.properties(height=420), width="stretch")
+st.caption("The three stages add up to xG against minus goals conceded. PL shots were blocked a little more often "
+           "than the 5-league average, so most PL teams are positive on blocks.")
 
 st.subheader(f"{lx.points:.0f} points from {lx.xpts:.1f} expected: their chances alone rank {ordinal(xpts_rank)}")
 table = xpts.reset_index(names="team").assign(name=lambda d: d.team.map(short_name))

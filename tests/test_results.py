@@ -10,12 +10,21 @@ import pytest
 
 from conftest import FIGURES, ROOT
 from simulate import expected_points, p_at_least, p_at_most, simulate_goals
-from team_stats import LEICESTER, PL, champion_summary, formation_profile, team_breakdown
+from team_stats import (
+    LEICESTER,
+    PL,
+    champion_summary,
+    defense_funnel,
+    formation_profile,
+    load_funnel,
+    team_breakdown,
+)
 
 README = (ROOT / "README.md").read_text()
+DOCS = README + (ROOT / "docs" / "interview_prep.md").read_text()
 RESULTS = " ".join(p.read_text() for p in FIGURES.glob("*.md"))
-# Numbers in the README that describe the project or illustrate a concept rather than report a result.
-NOT_RESULTS = {"3.11", "3.13", "5.4", "0.2", "20%", "84%", "92%"}
+# Numbers that describe the project or illustrate a concept rather than report a result.
+NOT_RESULTS = {"3.11", "3.13", "5.4", "0.2", "20%", "84%", "92%", "90%", "9.5%"}
 RESULT_VALUES = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", RESULTS.replace(",", ""))]
 
 
@@ -32,7 +41,8 @@ def test_every_figure_in_readme_is_generated():
 
 
 def readme_numbers():
-    return sorted(set(re.findall(r"(?<![\w.,])[−+-]?\d+\.\d+%?|(?<![\w.])\d+%", README)))
+    # The README and the interview prep both quote results, so both are checked.
+    return sorted(set(re.findall(r"(?<![\w.,])[−+-]?\d+\.\d+%?|(?<![\w.])\d+%", DOCS)))
 
 
 def matches_at_precision(number: str, values: list[float]) -> bool:
@@ -138,3 +148,17 @@ def test_readme_key_claims_exact(shots, matches):
     ]
     for claim in claims:
         assert claim in README, claim
+
+
+def test_readme_defense_claims_exact(shots, matches):
+    funnel = defense_funnel(shots, load_funnel(), PL).loc[LEICESTER]
+    text = (FIGURES / "leicester_results.md").read_text()
+    assert (f"Kasper Schmeichel's goalkeeping ({funnel.goalkeeping:+.1f}), opponents missing the target "
+            f"({funnel.missed_target:+.1f}) and blocks ({funnel.blocks:+.1f})") in README
+    assert f"| Goalkeeping (Schmeichel started all 38 matches) | {funnel.goalkeeping:+.1f} |" in README
+    assert f"Leicester blocked {funnel.blocked:.0f} of {funnel.shots_against:.0f} shots, " \
+           f"{funnel.blocked - funnel.expected_blocked:.0f} more than expected" in README
+    keeper_p = re.search(r"p = (0\.\d+)\n", text.split("- Goalkeeping: ")[-1]).group(1)
+    assert f"Schmeichel's share alone has p = {keeper_p}" in README
+    any_team = re.search(r"by luck is (\d+%)", text).group(1)
+    assert f"by luck is {any_team}" in README

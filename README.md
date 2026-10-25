@@ -12,17 +12,17 @@ An expected goals (xG) model built from free StatsBomb event data, used to answe
 
 - **Quality, not volume.** Leicester averaged 0.114 xG per shot, 2nd in the league behind Arsenal, while taking only the 8th-most shots per match (13.5).
 - **Their attacking finishing was average.** They scored 57 non-penalty goals from 58.3 xG. In 10,000 simulated seasons, 60% matched or beat that total. Jamie Vardy scored 19 from 18.9 xG, exactly on par.
-- **The overperformance was at the other end.** Leicester conceded 32 non-penalty goals from 44.5 xG against, 12.5 fewer than expected and the most in the league (p = 0.016).
+- **The overperformance was at the other end.** Leicester conceded 32 non-penalty goals from 44.5 xG against, 12.5 fewer than expected and the most in the league (p = 0.016). It came from every stage of a shot: Kasper Schmeichel's goalkeeping (+5.6), opponents missing the target (+3.5) and blocks (+3.4).
 - **Mahrez was the one standout finisher:** 13 goals from 7.2 xG (p = 0.021).
 - **That gap was worth about 15 points.** Leicester won 81 points from 66.5 expected points. Their chances alone made them a top-4 side, not champions.
 
-Counterattacks were part of the story: 12.4% of Leicester's xG came from counters, 1.8 times the rest of the league's share. Leicester also took the most penalties in the league (13, scoring 10).
+This wasn't how champions usually win. Barcelona, Juventus and PSG out-shot their leagues by 21% to 29% and beat their xG by 9 to 18 goals. Leicester leaned on counterattacks instead (12.4% of their xG, 1.8 times the league's share), and among 20 teams across Europe that played a 4-4-2 they created the most xG per 90 minutes.
 
-This wasn't how champions usually win. Barcelona, Juventus and PSG out-shot their leagues by 21% to 29% and beat their xG by 9 to 18 goals. And among the 20 teams across Europe that played a 4-4-2, Leicester created the most xG per 90 minutes: they were an outlier, not a typical 4-4-2 side.
+## How sure is this?
 
-## The question
-
-Leicester were 5000-to-1 to win the 2015/16 Premier League and won it by 10 points. The usual explanations are a hot streak from Vardy and Mahrez, a fast counterattacking style, or plain luck. An xG model separates *how many* chances a team creates, *how good* those chances are, and *how well* they were finished, so it can test each explanation.
+- **Leicester were picked because they won**, and title winners tend to have overperformed. Their defense's p = 0.016 is unusual for one team, but if all 20 teams were average, the chance that at least one gets that far ahead of its xG by luck is 27%. Treat it as "a lot went right", not proof of skill.
+- **No single defensive stage is extreme on its own.** Schmeichel's share alone has p = 0.137. The finding is that every stage leaned the same way.
+- **Mahrez was named before looking at the data**, but 12 of 433 players with 30+ shots finished as far above their xG as he did, against about 9 expected by chance. Some of that is skill, some is a good season.
 
 ## Data
 
@@ -62,7 +62,7 @@ XGBoost's log loss is within 0.9% of StatsBomb's own model. Across all 38,318 no
 
 The model is calibrated: shots it rates at 0.2 xG go in about 20% of the time. Distance, angle and the number of defenders in the way drive it most ([SHAP summary](figures/shap_summary.png)).
 
-## Analysis: Leicester vs the Premier League
+## Leicester vs the Premier League
 
 ### Finishing vs defense
 
@@ -81,39 +81,51 @@ Each shot is replayed 10,000 times as a coin flip weighted by its xG. The p-valu
 | Jamie Vardy | 112 | 18.9 | 19 | 13 to 25 | 0.527 |
 | Riyad Mahrez | 81 | 7.2 | 13 | 3 to 11 | 0.021 |
 
-The defensive number mixes goalkeeping (Kasper Schmeichel), last-ditch blocks and luck, and this model can't separate them: xG only measures the chance, not what happened after the shot.
+### Where the defense beat its xG
+
+Every shot against has to avoid a block, hit the target and beat the keeper. A model for each stage, trained on the same pre-shot features, gives how often shots of that quality get through on average. Comparing what happened with those chances splits the 12.5 goals into three parts that add up exactly:
+
+![Goals prevented by stage for all 20 teams](figures/defense_funnel.png)
+
+| Stage | Goals prevented | PL rank |
+|---|---|---|
+| Goalkeeping (Schmeichel started all 38 matches) | +5.6 | 1st |
+| Opponents missing the target | +3.5 | 1st |
+| Blocks | +3.4 | 4th |
+
+Leicester blocked 176 of 513 shots, 34 more than expected for shots of that kind, but most of them were low-value attempts, so the extra blocks are worth only +3.4 goals.
+
+A post-shot xG model (using where shots ended up) would be the usual way to measure goalkeeping, but it doesn't work on this data: saved shots are recorded where the keeper stopped them and goals where they crossed the line, so a test model could tell goals from saves almost perfectly from the recording alone.
 
 ### Expected points
 
 ![Expected points vs actual points](figures/expected_points.png)
 
-Full tables (all 20 teams, play patterns, assist types): [figures/leicester_results.md](figures/leicester_results.md).
+Full tables (all 20 teams, defensive stages, play patterns, assist types): [figures/leicester_results.md](figures/leicester_results.md).
 
-## Analysis: Leicester vs the other champions
+## Leicester vs the other champions
 
-Did Leicester win the way champions usually do? Each 2015/16 champion is compared with the average team in its own league, because leagues differ in how many goals they produce.
+Each 2015/16 champion is compared with the average team in its own league, because leagues differ in how many goals they produce.
 
 ![Leicester vs Barcelona, Juventus and PSG](figures/champions.png)
 
-- **The usual champions dominate the ball and the shot count.** Barcelona, Juventus and PSG took 21% to 29% more shots than their league average and allowed 18% to 30% fewer. Leicester took 4% more and allowed 5% more.
-- **The giants also out-finished their xG**, by 9 to 18 goals, with elite forwards doing what xG doesn't credit. Leicester's attack finished at an average rate (−1.3).
-- **All three topped their league on expected points. Leicester ranked 4th.** Leicester's xG difference was +0.36 per match, against +0.90 to +1.40 for the others.
-- **Leicester leaned on counterattacks:** 1.8 times their league's share of xG from counters, compared with 0.5 to 1.1 times for the other champions.
+- **The usual champions dominate the shot count.** Barcelona, Juventus and PSG took 21% to 29% more shots than their league average and allowed 18% to 30% fewer. Leicester took 4% more and allowed 5% more.
+- **The giants out-finished their xG** by 9 to 18 goals. Leicester's attack finished at an average rate (−1.3).
+- **All three topped their league on expected points. Leicester ranked 4th**, with an xG difference of +0.36 per match against +0.90 to +1.40 for the others.
+- **Leicester leaned on counterattacks:** 1.8 times their league's share of xG from counters, against 0.5 to 1.1 times for the other champions.
 
 Bayern Munich isn't included because the free data covers only Leverkusen's Bundesliga matches. PSG's numbers cover 37 of their 38 matches. Full table: [figures/champions_results.md](figures/champions_results.md).
 
-## Analysis: formations across the 5 leagues
+## Formations across the 5 leagues
 
-Every team's formation and the score are tracked minute by minute through the season (starting lineups, in-game tactical shifts and goals), so each formation is measured per 90 minutes actually played in it. Teams change shape when they're chasing a game, so rates are weighted to the same mix of scorelines for every formation.
+Every team's formation and the score are tracked minute by minute (starting lineups, in-game tactical shifts and goals), so each formation is measured per 90 minutes actually played in it, weighted to the same mix of scorelines.
 
 ![xG per 90 by formation](figures/formations.png)
 
 - **At the same scorelines, common formations differ only modestly:** from 0.90 xG per 90 (4-4-1-1) to 1.21 (4-3-3). The game state adjustment moves any formation's number by at most 0.02.
 - **Leicester were not a typical 4-4-2 team.** Of 20 teams that played 4-4-2 for 900+ minutes, Leicester ranked 1st in xG per 90 (1.55 vs 1.11 for all other 4-4-2 minutes), 2nd in xG per shot, and 2nd in the share of xG from counterattacks (11.2% vs 6.5%).
 
-![Leicester among 4-4-2 teams](figures/formation_442_teams.png)
-
-Formation choice is tied to team quality: stronger squads favor some formations, so these are patterns, not causes. "Teams in a 4-3-3 created more xG" doesn't mean switching to 4-3-3 would create more. Full tables, including the unadjusted numbers: [figures/formations_results.md](figures/formations_results.md).
+Formation choice is tied to team quality, so these are patterns, not causes: "teams in a 4-3-3 created more xG" doesn't mean switching to 4-3-3 would create more. Full tables: [figures/formations_results.md](figures/formations_results.md).
 
 ## The app
 
@@ -121,7 +133,7 @@ The Streamlit app opens on the Leicester finding, then lets you explore:
 
 | Page | What's on it |
 |---|---|
-| The Leicester story | The headline, key numbers, the 20-team scatter, simulations, expected points |
+| The Leicester story | The headline, key numbers, the 20-team scatter, simulations, the defensive split, expected points |
 | Team explorer | Any team in any league: shot map, goals vs xG through the season, xG by play pattern |
 | Player lookup | Shot map, goals vs xG against the simulated range, conversion by body part (players with 30+ shots by default) |
 | Champions | Leicester, Barcelona, Juventus and PSG against their own leagues |
@@ -130,37 +142,17 @@ The Streamlit app opens on the Leicester finding, then lets you explore:
 
 ## Limitations
 
-- One season only, so a team's luck and skill can't be separated over time.
+- One season only, so luck and skill can't be separated over time, and Leicester were chosen because they won (see "How sure is this?").
+- The defensive stages are compared with the 5-league average. PL shots were blocked a little more often than that, so most PL teams show positive blocks; ranks within the PL are unaffected.
 - Formation is tied to team quality, so formation comparisons show patterns, not causes.
-- Player samples are small: Mahrez's 81 shots is a short run, and players with fewer than 30 shots shouldn't be judged on finishing.
+- Player samples are small, and players with fewer than 30 shots shouldn't be judged on finishing.
 - Freeze frames are a single snapshot and don't show player movement.
-- xG ignores the shooter's skill by design, and pre-shot xG can't tell good goalkeeping from bad finishing.
+- xG ignores the shooter's skill by design.
 - The free Bundesliga data covers only Leverkusen's matches, and 3 Ligue 1 matches are missing.
 
-## Testing and QA
+## Testing
 
-More than 180 tests across 9 files cover the pipeline from raw events to the README, at 92% line coverage with the raw data downloaded (84% in CI, where the database tests skip). GitHub Actions runs lint and every test that doesn't need the raw download on each push.
-
-| Layer | File | What it checks |
-|---|---|---|
-| Features | `test_features.py` | Distance and angle against hand-checked points, run on the pipeline's own SQL macros; defenders in the cone; missing keepers; game state on a made-up match with an own goal |
-| Raw data integrity | `test_data.py` | Match counts per league; goals rebuilt from events give the official final score in all 1,551 matches; one name per team; one row per shot; no shootout shots; penalties flagged; locations on the pitch; feature ranges; no missing model inputs; formation minutes cover every team-match (90 to 105 minutes); every shot falls in a formation segment |
-| Processed data | `test_processed.py` | Schema; xG is a probability; train/test split grouped by match, about 20% of matches, every league in test; calibration within 3 points in every decile; xG beats a naive baseline; agreement with StatsBomb xG; game state consistent with goal difference |
-| Model behavior | `test_model.py` | No leaky features (outcome, end location, StatsBomb xG, game state, formation); closer, central, foot, unblocked, open goal and through ball shots all rate higher; unseen categories don't crash; model ranking in the results table; split is deterministic |
-| Analysis math | `test_team_stats.py`, `test_simulate.py` | Team breakdowns, xG shares, ranks and ordinals on tiny hand-built leagues; the game state adjustment and shots-against attribution with known answers; simulation p-values and expected points with certain outcomes |
-| Reproducibility | `test_pipeline.py` | Each analysis script, run fresh, reproduces its committed results file exactly. An opt-in slow test rebuilds the database and retrains from the raw download and checks every shot's xG is identical |
-| README accuracy | `test_results.py` | Every number in this README is traced, at the precision shown, to a generated results file; key results are recomputed from data; every linked file and figure exists |
-| App | `test_app.py` | All 6 pages run; team explorer for all 98 teams for and against; every formation league and scoreline filter; player lookup including small-sample warnings |
-
-Numeric warnings (like dividing by zero) fail the tests rather than passing silently. Pages were also checked by hand in a browser at desktop and phone widths.
-
-```bash
-pip install -r requirements-dev.txt
-ruff check src app tests     # lint
-pytest                       # all but the slow test; database tests skip without the raw download
-pytest --cov                 # with coverage
-pytest -m slow               # full rebuild and retrain, about 4 minutes
-```
+About 200 tests check the pipeline end to end: the raw data (goals rebuilt from events match all 1,551 final scores), the model (calibration, no leaky features, sensible behavior on hand-built shots), the analysis math, reproducibility (every results file and a full rebuild and retrain reproduce exactly), every number in this README, and every app page. They run on each push with GitHub Actions. Details, and the bugs the tests caught: [TESTING.md](TESTING.md).
 
 ## How to run it
 
@@ -170,34 +162,29 @@ Requires Python 3.11+ (developed and tested on 3.13).
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-python src/download.py     # StatsBomb events -> data/raw/ (about 15 minutes)
-python src/build_db.py     # DuckDB tables and features
-python src/train.py        # models + data/processed/shots_with_xg.parquet
-python src/evaluate.py     # metrics, calibration, SHAP figures
-python src/analysis.py     # Leicester analysis figures and tables
-python src/champions.py    # champions comparison
-python src/formations.py   # formation analysis
-
-pytest                     # see Testing and QA
-streamlit run app/streamlit_app.py
+make all     # download (about 15 minutes, once), build, train, and regenerate every figure and table
+make test    # lint and tests (pip install -r requirements-dev.txt first)
+make app     # run the Streamlit app
 ```
+
+Each stage also runs on its own: `make data`, `make db`, `make model`, `make figures`.
 
 ## Repo structure
 
 ```text
 sql/            shots, features, game state, formations, formation minutes (DuckDB)
-src/            download, build, freeze frame features, train, evaluate, simulate, analysis, champions, formations
+src/            download, build, freeze frame features, train, shot funnel, evaluate, simulate, analysis, champions, formations
 app/            Streamlit app (reads data/processed/ and figures/ only)
 tests/          data, model, analysis, reproducibility, README and app tests
-notebooks/      exploration only
-data/processed/ shots_with_xg, matches, formation_minutes (used by the app)
+docs/           interview prep
+data/processed/ shots_with_xg, matches, formation_minutes, funnel, champions (used by the app)
 figures/        charts and results tables
 models/         trained models
 ```
 
 ## Next steps
 
-- More seasons, to test whether Leicester's defensive overperformance was skill that repeated.
-- A post-shot xG model using shot end location, to separate goalkeeping from defending and luck.
+- More seasons, to test whether Leicester's defensive overperformance repeated (skill) or faded (luck).
+- Shot end locations recorded consistently for saves and goals, which would allow a proper post-shot xG model for goalkeeping.
 - A finishing skill model for players, pooling information across seasons.
 - Tracking data, to replace single-frame defender positions with movement.

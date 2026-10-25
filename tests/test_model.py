@@ -121,3 +121,10 @@ def test_split_is_grouped_and_deterministic():
     assert first.equals(second)
     assert (df.assign(t=first).groupby("match_id").t.nunique() == 1).all()
     assert first.groupby(df.match_id).first().mean() == pytest.approx(0.2)
+
+
+def test_funnel_uses_only_pre_shot_features():
+    import funnel
+    assert funnel.FEATURES is FEATURES
+    model = funnel.stage_model()
+    assert model.named_steps["prep"].transformers[0][2] == NUMERIC

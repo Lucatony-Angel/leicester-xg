@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter
 
 from analysis import FIGURES_DIR, GRAY, INK, LEICESTER_BLUE, LIGHT_GRAY, MUTED, style
-from team_stats import LEICESTER, champion_summary, load, ordinal
+from team_stats import LEICESTER, PROCESSED_DIR, champion_summary, load, ordinal
 
 SHORT_NAMES = {"Leicester City": "Leicester", "Barcelona": "Barcelona", "Juventus": "Juventus",
                "Paris Saint-Germain": "PSG"}
@@ -63,6 +63,8 @@ def plot_champions(summary) -> None:
 def main() -> None:
     shots, matches = load()
     summary = champion_summary(shots, matches)
+    # Saved for the app, so its Champions page doesn't rerun 40,000 simulated seasons.
+    summary.to_parquet(PROCESSED_DIR / "champions.parquet")
     plot_champions(summary)
 
     lei, others = summary.loc[LEICESTER], summary.drop(LEICESTER)

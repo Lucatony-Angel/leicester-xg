@@ -4,7 +4,16 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from team_stats import FLIP_STATE, GAME_STATES, formation_profile, ordinal, rank, share_vs_league, team_breakdown
+from team_stats import (
+    FLIP_STATE,
+    GAME_STATES,
+    defense_funnel,
+    formation_profile,
+    ordinal,
+    rank,
+    share_vs_league,
+    team_breakdown,
+)
 
 LEAGUE = "Test League"
 
@@ -130,3 +139,22 @@ def test_team_filters(formations):
     only_x = formation_profile(shots, minutes, team="X")
     without_x = formation_profile(shots, minutes, exclude_team="X")
     assert list(only_x.index) == ["4-4-2"] and list(without_x.index) == ["4-3-3"]
+
+
+def test_defense_funnel_stages_add_up():
+    # Team D faces three shots: one blocked, one off target, one on target that goes in.
+    shots = pd.DataFrame([
+        {**make_shot("A", "D", 0.2, 0), "shot_id": "blocked", "outcome": "Blocked"},
+        {**make_shot("A", "D", 0.3, 0), "shot_id": "wide", "outcome": "Off T"},
+        {**make_shot("A", "D", 0.4, 1), "shot_id": "goal", "outcome": "Goal"},
+    ])
+    funnel = pd.DataFrame({"shot_id": ["blocked", "wide", "goal"], "p_not_blocked": [0.5, 0.8, 0.9],
+                           "p_on_target": [0.5, 0.6, 0.8], "p_goal_on_target": [0.8, 0.625, 0.5]})
+    d = defense_funnel(shots, funnel, LEAGUE).loc["D"]
+    after_blocks = 0.6 * 0.625 + 0.8 * 0.5            # shots that got past the block
+    after_misses = 0.5                                 # only the on-target shot
+    assert d.blocks == pytest.approx(0.9 - after_blocks)
+    assert d.missed_target == pytest.approx(after_blocks - after_misses)
+    assert d.goalkeeping == pytest.approx(after_misses - 1)
+    assert d.blocks + d.missed_target + d.goalkeeping == pytest.approx(d.goals_prevented)
+    assert d.blocked == 1 and d.expected_blocked == pytest.approx(0.5 + 0.2 + 0.1)
