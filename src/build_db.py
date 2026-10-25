@@ -49,6 +49,12 @@ def main() -> None:
             build_freeze_frame_table(con)
             print("built freeze_frame_features")
 
+    # Final scores, for expected points. Small enough to commit alongside shots_with_xg.
+    con.execute(f"""
+        COPY (SELECT match_id, competition, match_date, home_team, away_team, home_score, away_score FROM matches)
+        TO '{ROOT / "data" / "processed" / "matches.parquet"}' (FORMAT parquet)
+    """)
+
     n = con.execute("SELECT count(*) FROM shot_table").fetchone()[0]
     print(f"shot_table: {n:,} shots")
     con.close()

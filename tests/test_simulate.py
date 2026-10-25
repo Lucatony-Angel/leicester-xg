@@ -1,0 +1,34 @@
+import numpy as np
+import pandas as pd
+import pytest
+
+from simulate import expected_points, p_at_least, p_at_most, simulate_goals
+
+
+def test_certain_shots():
+    assert (simulate_goals([0.0, 0.0]) == 0).all()
+    assert (simulate_goals([1.0, 1.0, 1.0]) == 3).all()
+
+
+def test_mean_matches_total_xg():
+    xg = np.full(500, 0.1)
+    assert simulate_goals(xg).mean() == pytest.approx(50, rel=0.02)
+
+
+def test_p_values():
+    sims = np.arange(100)            # 0..99
+    assert p_at_least(90, sims) == pytest.approx(0.10)
+    assert p_at_most(9, sims) == pytest.approx(0.10)
+
+
+def test_expected_points():
+    matches = pd.DataFrame({"match_id": [1, 2], "home_team": ["A", "A"], "away_team": ["B", "C"],
+                            "home_score": [1, 0], "away_score": [0, 0]})
+    shots = pd.DataFrame({"match_id": [1, 1, 2], "team": ["A", "A", "C"], "xg": [1.0, 0.0, 0.0]})
+    table = expected_points(shots, matches, n_sims=1000)
+    # Match 1: A scores for certain, B has no shots -> A 3 xPts, B 0.
+    # Match 2: nobody can score -> a certain draw, 1 xPt each.
+    assert table.loc["A", "xpts"] == pytest.approx(4)
+    assert table.loc["B", "xpts"] == pytest.approx(0)
+    assert table.loc["C", "xpts"] == pytest.approx(1)
+    assert table.loc["A", "points"] == 4
