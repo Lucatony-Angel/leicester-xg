@@ -32,3 +32,19 @@ def test_expected_points():
     assert table.loc["B", "xpts"] == pytest.approx(0)
     assert table.loc["C", "xpts"] == pytest.approx(1)
     assert table.loc["A", "points"] == 4
+
+
+def test_expected_points_ignore_row_order():
+    matches = pd.DataFrame({"match_id": [1, 2, 3], "home_team": ["A", "B", "C"], "away_team": ["B", "C", "A"],
+                            "home_score": [1, 0, 2], "away_score": [1, 2, 0]})
+    shots = pd.DataFrame({"match_id": [1, 1, 1, 1, 2, 2, 3, 3, 3],
+                          "team": ["A", "A", "A", "B", "B", "C", "C", "A", "A"],
+                          "xg": [0.3, 0.05, 0.6, 0.4, 0.2, 0.5, 0.35, 0.25, 0.1]})
+    forward = expected_points(shots, matches, n_sims=2000)
+    shuffled = expected_points(shots.iloc[::-1], matches.iloc[[2, 0, 1]], n_sims=2000)
+    pd.testing.assert_frame_equal(forward.sort_index(), shuffled.sort_index())
+
+
+def test_goal_simulation_ignores_shot_order():
+    xg = np.array([0.05, 0.6, 0.3, 0.12, 0.45])
+    assert (simulate_goals(xg) == simulate_goals(xg[::-1])).all()

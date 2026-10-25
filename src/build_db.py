@@ -51,12 +51,14 @@ def main() -> None:
 
     # Final scores, for expected points. Small enough to commit alongside shots_with_xg.
     con.execute(f"""
-        COPY (SELECT match_id, competition, match_date, home_team, away_team, home_score, away_score FROM matches)
+        COPY (SELECT match_id, competition, match_date, home_team, away_team, home_score, away_score FROM matches
+              ORDER BY match_id)
         TO '{ROOT / "data" / "processed" / "matches.parquet"}' (FORMAT parquet)
     """)
     # Minutes per formation and game state, for comparing formations per 90.
     con.execute(f"""
-        COPY formation_minutes TO '{ROOT / "data" / "processed" / "formation_minutes.parquet"}' (FORMAT parquet)
+        COPY (SELECT * FROM formation_minutes ORDER BY match_id, team, formation, game_state)
+        TO '{ROOT / "data" / "processed" / "formation_minutes.parquet"}' (FORMAT parquet)
     """)
 
     n = con.execute("SELECT count(*) FROM shot_table").fetchone()[0]

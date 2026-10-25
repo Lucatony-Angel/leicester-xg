@@ -9,8 +9,7 @@ import pandas as pd
 from matplotlib.ticker import PercentFormatter
 
 from analysis import FIGURES_DIR, GRAY, INK, LEICESTER_BLUE, LIGHT_GRAY, MUTED, style
-from team_stats import (LEICESTER, PL, formation_profile, load, load_formation_minutes, ordinal,
-                        team_formation_profiles)
+from team_stats import LEICESTER, PL, formation_profile, load, load_formation_minutes, ordinal, team_formation_profiles
 
 MIN_MINUTES = 5000  # about 55 full matches; smaller formations are too noisy to compare
 PANELS = [
@@ -24,7 +23,7 @@ PANELS = [
 def plot_formations(profile: pd.DataFrame, leicester: pd.Series) -> None:
     order = profile.sort_values("xg_per90").index
     fig, axes = plt.subplots(1, 4, figsize=(14, 4.8), sharey=True)
-    for ax, (col, label, fmt) in zip(axes, PANELS):
+    for ax, (col, label, fmt) in zip(axes, PANELS, strict=True):
         ax.barh(order, profile.loc[order, col], color=LIGHT_GRAY, height=0.7)
         ax.scatter([leicester[col]], ["4-4-2"], color=LEICESTER_BLUE, s=70, zorder=3, edgecolor="white", linewidth=1.5)
         for y, f in enumerate(order):
@@ -70,7 +69,8 @@ def plot_442_teams(teams: pd.DataFrame) -> None:
     most = "the most" if rank == 1 else f"the {ordinal(rank)}-most"
     ax.set_title(f"Of {len(t)} teams that played 4-4-2, Leicester created {most} xG per 90",
                  loc="left", fontsize=11, color=INK)
-    fig.text(0.125, -0.02, "Teams with at least 900 minutes in 4-4-2, game-state adjusted. Dot size = minutes in 4-4-2.",
+    fig.text(0.125, -0.02,
+             "Teams with at least 900 minutes in 4-4-2, game-state adjusted. Dot size = minutes in 4-4-2.",
              fontsize=8, color=MUTED)
     fig.savefig(FIGURES_DIR / "formation_442_teams.png", dpi=150, bbox_inches="tight")
     plt.close(fig)

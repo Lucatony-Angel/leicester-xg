@@ -1,5 +1,7 @@
 # Leicester won the 2015/16 Premier League with chance quality and a defense that beat its xG, not lucky finishing
 
+[![tests](https://github.com/Lucatony-Angel/leicester-xg/actions/workflows/tests.yml/badge.svg)](https://github.com/Lucatony-Angel/leicester-xg/actions/workflows/tests.yml)
+
 An expected goals (xG) model built from free StatsBomb event data, used to answer one question: **how did a 5000-to-1 underdog win the league: shot quality, shot volume, or finishing luck?**
 
 **Live app:** coming soon
@@ -9,9 +11,9 @@ An expected goals (xG) model built from free StatsBomb event data, used to answe
 ## Key findings
 
 - **Quality, not volume.** Leicester averaged 0.114 xG per shot, 2nd in the league behind Arsenal, while taking only the 8th-most shots per match (13.5).
-- **Their attacking finishing was average.** They scored 57 non-penalty goals from 58.3 xG. In 10,000 simulated seasons, 61% matched or beat that total. Jamie Vardy scored 19 from 18.9 xG, exactly on par.
-- **The overperformance was at the other end.** Leicester conceded 32 non-penalty goals from 44.5 xG against, 12.5 fewer than expected and the most in the league (p = 0.018).
-- **Mahrez was the one standout finisher:** 13 goals from 7.2 xG (p = 0.020).
+- **Their attacking finishing was average.** They scored 57 non-penalty goals from 58.3 xG. In 10,000 simulated seasons, 60% matched or beat that total. Jamie Vardy scored 19 from 18.9 xG, exactly on par.
+- **The overperformance was at the other end.** Leicester conceded 32 non-penalty goals from 44.5 xG against, 12.5 fewer than expected and the most in the league (p = 0.016).
+- **Mahrez was the one standout finisher:** 13 goals from 7.2 xG (p = 0.021).
 - **That gap was worth about 15 points.** Leicester won 81 points from 66.5 expected points. Their chances alone made them a top-4 side, not champions.
 
 Counterattacks were part of the story: 12.4% of Leicester's xG came from counters, 1.8 times the rest of the league's share. Leicester also took the most penalties in the league (13, scoring 10).
@@ -74,10 +76,10 @@ Each shot is replayed 10,000 times as a coin flip weighted by its xG. The p-valu
 
 | | Shots | xG | Actual | 90% of simulations | p |
 |---|---|---|---|---|---|
-| Leicester goals scored | 512 | 58.3 | 57 | 48 to 69 | 0.608 |
-| Leicester goals conceded | 513 | 44.5 | 32 | 35 to 54 | 0.018 |
-| Jamie Vardy | 112 | 18.9 | 19 | 13 to 25 | 0.532 |
-| Riyad Mahrez | 81 | 7.2 | 13 | 3 to 11 | 0.020 |
+| Leicester goals scored | 512 | 58.3 | 57 | 48 to 69 | 0.602 |
+| Leicester goals conceded | 513 | 44.5 | 32 | 35 to 54 | 0.016 |
+| Jamie Vardy | 112 | 18.9 | 19 | 13 to 25 | 0.527 |
+| Riyad Mahrez | 81 | 7.2 | 13 | 3 to 11 | 0.021 |
 
 The defensive number mixes goalkeeping (Kasper Schmeichel), last-ditch blocks and luck, and this model can't separate them: xG only measures the chance, not what happened after the shot.
 
@@ -135,9 +137,34 @@ The Streamlit app opens on the Leicester finding, then lets you explore:
 - xG ignores the shooter's skill by design, and pre-shot xG can't tell good goalkeeping from bad finishing.
 - The free Bundesliga data covers only Leverkusen's matches, and 3 Ligue 1 matches are missing.
 
+## Testing and QA
+
+More than 180 tests across 9 files cover the pipeline from raw events to the README, at 92% line coverage with the raw data downloaded (84% in CI, where the database tests skip). GitHub Actions runs lint and every test that doesn't need the raw download on each push.
+
+| Layer | File | What it checks |
+|---|---|---|
+| Features | `test_features.py` | Distance and angle against hand-checked points, run on the pipeline's own SQL macros; defenders in the cone; missing keepers; game state on a made-up match with an own goal |
+| Raw data integrity | `test_data.py` | Match counts per league; goals rebuilt from events give the official final score in all 1,551 matches; one name per team; one row per shot; no shootout shots; penalties flagged; locations on the pitch; feature ranges; no missing model inputs; formation minutes cover every team-match (90 to 105 minutes); every shot falls in a formation segment |
+| Processed data | `test_processed.py` | Schema; xG is a probability; train/test split grouped by match, about 20% of matches, every league in test; calibration within 3 points in every decile; xG beats a naive baseline; agreement with StatsBomb xG; game state consistent with goal difference |
+| Model behavior | `test_model.py` | No leaky features (outcome, end location, StatsBomb xG, game state, formation); closer, central, foot, unblocked, open goal and through ball shots all rate higher; unseen categories don't crash; model ranking in the results table; split is deterministic |
+| Analysis math | `test_team_stats.py`, `test_simulate.py` | Team breakdowns, xG shares, ranks and ordinals on tiny hand-built leagues; the game state adjustment and shots-against attribution with known answers; simulation p-values and expected points with certain outcomes |
+| Reproducibility | `test_pipeline.py` | Each analysis script, run fresh, reproduces its committed results file exactly. An opt-in slow test rebuilds the database and retrains from the raw download and checks every shot's xG is identical |
+| README accuracy | `test_results.py` | Every number in this README is traced, at the precision shown, to a generated results file; key results are recomputed from data; every linked file and figure exists |
+| App | `test_app.py` | All 6 pages run; team explorer for all 98 teams for and against; every formation league and scoreline filter; player lookup including small-sample warnings |
+
+Numeric warnings (like dividing by zero) fail the tests rather than passing silently. Pages were also checked by hand in a browser at desktop and phone widths.
+
+```bash
+pip install -r requirements-dev.txt
+ruff check src app tests     # lint
+pytest                       # all but the slow test; database tests skip without the raw download
+pytest --cov                 # with coverage
+pytest -m slow               # full rebuild and retrain, about 4 minutes
+```
+
 ## How to run it
 
-Requires Python 3.11+.
+Requires Python 3.11+ (developed and tested on 3.13).
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
@@ -151,7 +178,7 @@ python src/analysis.py     # Leicester analysis figures and tables
 python src/champions.py    # champions comparison
 python src/formations.py   # formation analysis
 
-pytest                     # feature, simulation and app tests
+pytest                     # see Testing and QA
 streamlit run app/streamlit_app.py
 ```
 
@@ -161,7 +188,7 @@ streamlit run app/streamlit_app.py
 sql/            shots, features, game state, formations, formation minutes (DuckDB)
 src/            download, build, freeze frame features, train, evaluate, simulate, analysis, champions, formations
 app/            Streamlit app (reads data/processed/ and figures/ only)
-tests/          pytest tests for features, simulations and every app page
+tests/          data, model, analysis, reproducibility, README and app tests
 notebooks/      exploration only
 data/processed/ shots_with_xg, matches, formation_minutes (used by the app)
 figures/        charts and results tables

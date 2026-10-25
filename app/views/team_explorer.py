@@ -4,8 +4,20 @@ import pandas as pd
 import streamlit as st
 from mplsoccer import VerticalPitch
 
-from common import (GRAY, INK, LEAGUES, LEICESTER, LEICESTER_BLUE, LIGHT_GRAY, credit, get_breakdown, get_data,
-                    ordinal, rank, share_vs_league)
+from common import (
+    GRAY,
+    INK,
+    LEAGUES,
+    LEICESTER,
+    LEICESTER_BLUE,
+    LIGHT_GRAY,
+    credit,
+    get_breakdown,
+    get_data,
+    ordinal,
+    rank,
+    share_vs_league,
+)
 
 shots, _ = get_data()
 
@@ -43,7 +55,8 @@ quality = "xg_per_shot" if side == "For" else "xga_per_shot"
 m1.metric("Matches", f"{row.matches:.0f}", border=True)
 m2.metric("Shots per match", f"{row[per_match]:.1f}",
           f"league avg {t[per_match].mean():.1f}", delta_color="off", delta_arrow="off", border=True)
-m3.metric("xG per shot", f"{row[quality]:.3f}", f"league avg {t[quality].mean():.3f}", delta_color="off", delta_arrow="off", border=True)
+m3.metric("xG per shot", f"{row[quality]:.3f}", f"league avg {t[quality].mean():.3f}", delta_color="off",
+          delta_arrow="off", border=True)
 m4.metric("Goals vs xG", f"{goals} vs {xg:.1f}", f"{goals - xg:+.1f}", border=True,
           delta_color="normal" if side == "For" else "inverse")
 

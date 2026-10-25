@@ -1,10 +1,25 @@
 import altair as alt
-import pandas as pd
 import streamlit as st
 
-from common import (GRAY, LEICESTER, LEICESTER_BLUE, LIGHT_GRAY, PL, credit, get_breakdown, get_data,
-                    get_expected_points, get_simulation, highlight, ordinal, p_at_least, p_at_most, rank,
-                    short_name, simulation_chart)
+from common import (
+    GRAY,
+    LEICESTER,
+    LEICESTER_BLUE,
+    LIGHT_GRAY,
+    PL,
+    credit,
+    get_breakdown,
+    get_data,
+    get_expected_points,
+    get_simulation,
+    highlight,
+    ordinal,
+    p_at_least,
+    p_at_most,
+    rank,
+    short_name,
+    simulation_chart,
+)
 
 shots, _ = get_data()
 t = get_breakdown(PL)
@@ -75,7 +90,9 @@ st.subheader(f"{lx.points:.0f} points from {lx.xpts:.1f} expected: their chances
 table = xpts.reset_index(names="team").assign(name=lambda d: d.team.map(short_name))
 order = table.sort_values("points", ascending=False).name.tolist()
 rule = alt.Chart(table).mark_rule(color=LIGHT_GRAY, strokeWidth=2).encode(
-    y=alt.Y("name:N", sort=order, title=None), x=alt.X("xpts:Q", title="Points", scale=alt.Scale(zero=False)), x2="points:Q")
+    y=alt.Y("name:N", sort=order, title=None),
+    x=alt.X("xpts:Q", title="Points", scale=alt.Scale(zero=False)),
+    x2="points:Q")
 expected = alt.Chart(table).mark_point(filled=True, fill="white", stroke=GRAY, size=70, strokeWidth=1.5).encode(
     y=alt.Y("name:N", sort=order), x="xpts:Q",
     tooltip=[alt.Tooltip("team:N", title="Team"), alt.Tooltip("xpts:Q", title="Expected points", format=".1f")])

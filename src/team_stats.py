@@ -109,7 +109,7 @@ def champion_summary(shots: pd.DataFrame, matches: pd.DataFrame, n_sims: int = 1
 
 
 GAME_STATES = ["-2 or worse", "-1", "0", "+1", "+2 or better"]
-FLIP_STATE = dict(zip(GAME_STATES, GAME_STATES[::-1]))
+FLIP_STATE = dict(zip(GAME_STATES, GAME_STATES[::-1], strict=True))
 SET_PIECES = ["From Corner", "From Free Kick", "From Throw In"]
 ADDITIVE = ["shots", "xg", "goals", "counter_xg", "set_piece_xg", "cross_xg", "through_ball_xg",
             "shots_against", "xga", "goals_against"]
@@ -156,20 +156,22 @@ def per90(cells: pd.DataFrame, weights: pd.Series | None, min_state_minutes: flo
         if w.sum() == 0:
             return pd.Series(dtype=float)
         rates = (c[ADDITIVE].div(c.minutes, axis=0) * 90).mul(w / w.sum(), axis=0).sum()
-    out = pd.Series({
+    def ratio(a: float, b: float) -> float:
+        return a / b if b else float("nan")    # e.g. no shots at all in a rare game state
+
+    return pd.Series({
         "minutes": cells.minutes.sum(),
         "shots_per90": rates.shots,
         "xg_per90": rates.xg,
         "goals_per90": rates.goals,
-        "xg_per_shot": rates.xg / rates.shots,
+        "xg_per_shot": ratio(rates.xg, rates.shots),
         "shots_against_per90": rates.shots_against,
         "xga_per90": rates.xga,
-        "counter_share": rates.counter_xg / rates.xg,
-        "set_piece_share": rates.set_piece_xg / rates.xg,
-        "cross_share": rates.cross_xg / rates.xg,
-        "through_ball_share": rates.through_ball_xg / rates.xg,
+        "counter_share": ratio(rates.counter_xg, rates.xg),
+        "set_piece_share": ratio(rates.set_piece_xg, rates.xg),
+        "cross_share": ratio(rates.cross_xg, rates.xg),
+        "through_ball_share": ratio(rates.through_ball_xg, rates.xg),
     })
-    return out
 
 
 def formation_profile(shots: pd.DataFrame, minutes: pd.DataFrame, *, competition: str | None = None,

@@ -14,9 +14,21 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from simulate import expected_points, p_at_least, p_at_most, simulate_goals  # noqa: E402
-from team_stats import (CHAMPIONS, GAME_STATES, LEICESTER, PL, champion_summary, formation_profile,  # noqa: E402
-                        load, load_formation_minutes, ordinal, rank, share_vs_league, team_breakdown,
-                        team_formation_profiles)
+from team_stats import (  # noqa: E402
+    CHAMPIONS,
+    GAME_STATES,
+    LEICESTER,
+    PL,
+    champion_summary,
+    formation_profile,
+    load,
+    load_formation_minutes,
+    ordinal,
+    rank,
+    share_vs_league,
+    team_breakdown,
+    team_formation_profiles,
+)
 
 FIGURES_DIR = ROOT / "figures"
 LEICESTER_BLUE = "#003090"

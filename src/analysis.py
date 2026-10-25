@@ -6,9 +6,9 @@ Run after train.py.
 """
 
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
 import numpy as np
 import pandas as pd
+from matplotlib.ticker import MaxNLocator
 from mplsoccer import VerticalPitch
 
 from simulate import expected_points, p_at_least, p_at_most, simulate_goals
@@ -58,7 +58,7 @@ def plot_team_scatter(t: pd.DataFrame) -> None:
 def plot_goals_vs_xg(t: pd.DataFrame) -> None:
     fig, axes = plt.subplots(1, 2, figsize=(11, 6), sharey=False)
     panels = [("finishing", "Attack: goals minus xG"), ("goals_prevented", "Defense: xG against minus goals conceded")]
-    for ax, (col, label) in zip(axes, panels):
+    for ax, (col, label) in zip(axes, panels, strict=True):
         d = t[col].sort_values()
         ax.barh([n.replace(" Hotspur", "").replace(" Albion", "") for n in d.index], d.values,
                 color=team_colors(d.index), height=0.75)
@@ -78,7 +78,7 @@ def plot_goals_vs_xg(t: pd.DataFrame) -> None:
 
 def plot_simulations(sims: dict) -> None:
     fig, axes = plt.subplots(2, 2, figsize=(11, 7))
-    for ax, (label, r) in zip(axes.flat, sims.items()):
+    for ax, (label, r) in zip(axes.flat, sims.items(), strict=True):
         values, counts = np.unique(r["sims"], return_counts=True)
         ax.bar(values, counts / counts.sum(), width=0.85, color=LIGHT_GRAY)
         ax.axvline(r["actual"], color=LEICESTER_BLUE, linewidth=2.5)
@@ -185,7 +185,8 @@ def main() -> None:
         f"- Quality: {lei.xg_per_shot:.3f} xG per shot, rank {rank(t, 'xg_per_shot')} of 20",
         f"- Finishing: {lei.goals:.0f} goals from {lei.xg:.1f} xG ({lei.finishing:+.1f}), "
         f"rank {rank(t, 'finishing')} of 20",
-        f"- Defense: {lei.goals_against:.0f} conceded from {lei.xga:.1f} xG against ({lei.goals_prevented:+.1f} prevented), "
+        f"- Defense: {lei.goals_against:.0f} conceded from {lei.xga:.1f} xG against "
+        f"({lei.goals_prevented:+.1f} prevented), "
         f"rank {rank(t, 'goals_prevented')} of 20; {lei.xga_per_shot:.3f} xG per shot against, "
         f"rank {rank(t, 'xga_per_shot', ascending=True)} of 20 (lowest = 1)",
         f"- Penalties: {lei.penalties:.0f} taken ({lei.penalty_goals:.0f} scored), rank {rank(t, 'penalties')} of 20",

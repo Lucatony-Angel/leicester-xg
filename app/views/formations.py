@@ -2,8 +2,18 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from common import (GAME_STATES, GRAY, INK, LEAGUES, LEICESTER, LEICESTER_BLUE, LIGHT_GRAY, credit,
-                    get_formation_profile, get_team_formation_profiles)
+from common import (
+    GAME_STATES,
+    GRAY,
+    INK,
+    LEAGUES,
+    LEICESTER,
+    LEICESTER_BLUE,
+    LIGHT_GRAY,
+    credit,
+    get_formation_profile,
+    get_team_formation_profiles,
+)
 
 ADJUSTED = "All scorelines (adjusted)"
 STATE_LABELS = {"-2 or worse": "Losing by 2+", "-1": "Losing by 1", "0": "Level", "+1": "Winning by 1",
@@ -44,7 +54,7 @@ cols = st.columns(4)
 for col, (field, title, fmt) in zip(cols, [("xg_per90", "xG created per 90", ".2f"),
                                            ("xga_per90", "xG conceded per 90", ".2f"),
                                            ("shots_per90", "Shots per 90", ".1f"),
-                                           ("xg_per_shot", "xG per shot", ".3f")]):
+                                           ("xg_per_shot", "xG per shot", ".3f")], strict=True):
     chart = alt.Chart(data).mark_bar(cornerRadiusEnd=3).encode(
         y=alt.Y("formation:N", sort=order, title=None),
         x=alt.X(f"{field}:Q", title=None),

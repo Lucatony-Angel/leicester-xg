@@ -13,7 +13,7 @@ SEED = 42
 def simulate_goals(xg, n_sims: int = N_SIMS, seed: int = SEED) -> np.ndarray:
     """Total goals in each of n_sims simulated replays of the given shots."""
     rng = np.random.default_rng(seed)
-    xg = np.asarray(xg, dtype=float)
+    xg = np.sort(np.asarray(xg, dtype=float))     # sorted, so the result doesn't depend on shot order
     return (rng.random((n_sims, len(xg))) < xg).sum(axis=1)
 
 
@@ -33,10 +33,11 @@ def expected_points(shots: pd.DataFrame, matches: pd.DataFrame, n_sims: int = N_
     Uses all shots including penalties. Own goals aren't shots, so they count in
     actual points but not expected points.
     """
-    rng = np.random.default_rng(SEED)
-    xg_by_team = shots.groupby(["match_id", "team"]).xg.apply(np.asarray).to_dict()
+    xg_by_team = shots.groupby(["match_id", "team"]).xg.apply(lambda s: np.sort(s.to_numpy())).to_dict()
     rows = []
     for m in matches.itertuples():
+        # Seeded per match, so results don't depend on the order of rows in `matches`.
+        rng = np.random.default_rng([SEED, int(m.match_id)])
         home_xg = xg_by_team.get((m.match_id, m.home_team), np.array([]))
         away_xg = xg_by_team.get((m.match_id, m.away_team), np.array([]))
         home = (rng.random((n_sims, len(home_xg))) < home_xg).sum(axis=1)

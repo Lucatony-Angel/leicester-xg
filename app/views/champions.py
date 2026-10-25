@@ -26,7 +26,7 @@ PANELS = [
 ]
 for row in [PANELS[:3], PANELS[3:]]:
     cols = st.columns(3)
-    for col, (field, title, kind) in zip(cols, row):
+    for col, (field, title, kind) in zip(cols, row, strict=True):
         fmt = "+.0%" if kind == "%" else "+.1f"
         chart = alt.Chart(data).mark_bar(cornerRadiusEnd=3).encode(
             y=alt.Y("name:N", sort=order, title=None),

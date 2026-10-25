@@ -50,5 +50,6 @@ def build_freeze_frame_table(con: duckdb.DuckDBPyConnection) -> None:
     for s in shots.itertuples():
         frame = json.loads(s.freeze_frame) if isinstance(s.freeze_frame, str) else []
         rows.append({"shot_id": s.shot_id, **freeze_frame_features(s.x, s.y, frame)})
-    features = pd.DataFrame(rows)
-    con.execute("CREATE OR REPLACE TABLE freeze_frame_features AS SELECT * FROM features")
+    con.register("features_df", pd.DataFrame(rows))
+    con.execute("CREATE OR REPLACE TABLE freeze_frame_features AS SELECT * FROM features_df")
+    con.unregister("features_df")

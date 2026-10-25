@@ -4,8 +4,19 @@ import pandas as pd
 import streamlit as st
 from mplsoccer import VerticalPitch
 
-from common import (GRAY, INK, LEICESTER, LEICESTER_BLUE, LIGHT_GRAY, credit, get_data, get_players,
-                    get_simulation, p_at_least, simulation_chart)
+from common import (
+    GRAY,
+    INK,
+    LEICESTER,
+    LEICESTER_BLUE,
+    LIGHT_GRAY,
+    credit,
+    get_data,
+    get_players,
+    get_simulation,
+    p_at_least,
+    simulation_chart,
+)
 
 MIN_SHOTS = 30
 

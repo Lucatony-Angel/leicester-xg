@@ -27,7 +27,7 @@ def plot_champions(summary) -> None:
     fig, axes = plt.subplots(2, 3, figsize=(12, 6.5))
     names = [SHORT_NAMES[t] for t in summary.index][::-1]
     colors = [LEICESTER_BLUE if t == LEICESTER else LIGHT_GRAY for t in summary.index][::-1]
-    for ax, (col, label, kind) in zip(axes.flat, PANELS):
+    for ax, (col, label, kind) in zip(axes.flat, PANELS, strict=True):
         values = summary[col].values[::-1]
         ax.barh(names, values, color=colors, height=0.7)
         ax.axvline(0, color=MUTED, linewidth=1)
@@ -65,7 +65,7 @@ def main() -> None:
     summary = champion_summary(shots, matches)
     plot_champions(summary)
 
-    lei = summary.loc[LEICESTER]
+    lei, others = summary.loc[LEICESTER], summary.drop(LEICESTER)
     lines = [
         "# Part 2 results: Leicester vs the other champions",
         "",
@@ -81,7 +81,7 @@ def main() -> None:
           for t, r in summary.iterrows()],
         "",
         f"Leicester's xG difference per match was {lei.xg_diff_per_match:+.2f}, against "
-        f"{summary.drop(LEICESTER).xg_diff_per_match.min():+.2f} to {summary.drop(LEICESTER).xg_diff_per_match.max():+.2f} "
+        f"{others.xg_diff_per_match.min():+.2f} to {others.xg_diff_per_match.max():+.2f} "
         "for the other champions.",
         "",
         "## Full table",

@@ -25,7 +25,7 @@ with right:
 
 st.subheader("Why the model rated three Leicester shots the way it did")
 cols = st.columns(3)
-for col, name in zip(cols, ["shap_vardy_goal.png", "shap_mahrez_goal.png", "shap_leicester_miss.png"]):
+for col, name in zip(cols, ["shap_vardy_goal.png", "shap_mahrez_goal.png", "shap_leicester_miss.png"], strict=True):
     col.image(str(FIGURES_DIR / name), width="stretch")
 
 st.subheader("Features")
