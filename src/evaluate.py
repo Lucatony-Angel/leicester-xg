@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import shap
-from sklearn.calibration import calibration_curve
 from sklearn.metrics import brier_score_loss, log_loss, roc_auc_score
 
 from train import BOOLEAN, FEATURES, MODELS_DIR, PROCESSED_DIR, ROOT, TARGET
@@ -42,19 +41,41 @@ def style(ax):
     ax.grid(alpha=0.25)
 
 
+def calibration_bins(y: pd.Series, p: pd.Series, n_bins: int = 10) -> pd.DataFrame:
+    """Mean prediction, actual goal rate and a 95% interval for bins with equal shot counts."""
+    bins = pd.qcut(p, n_bins, labels=False, duplicates="drop")
+    out = pd.DataFrame({"y": y, "p": p}).groupby(bins).agg(pred=("p", "mean"), actual=("y", "mean"), n=("y", "size"))
+    out["ci"] = 1.96 * np.sqrt(out.actual * (1 - out.actual) / out.n)
+    return out
+
+
 def calibration_plot(test: pd.DataFrame, table: pd.DataFrame) -> None:
-    fig, ax = plt.subplots(figsize=(7, 6))
-    ax.plot([0, 0.45], [0, 0.45], color=MUTED, linestyle="--", linewidth=1, label="Perfect calibration")
-    for col in ["xgboost", "logistic", "statsbomb_xg"]:
-        frac, mean_pred = calibration_curve(test[TARGET], test[col], n_bins=10, strategy="quantile")
-        ax.plot(mean_pred, frac, marker="o", markersize=5, linewidth=2, color=COLORS[col], label=MODELS[col])
-    style(ax)
-    ax.set_xlabel("Predicted xG (10 bins with equal shot counts)", color=INK)
-    ax.set_ylabel("Actual goal rate", color=INK)
-    xgb_total, goals = table.loc["XGBoost", "total_xg"], table.loc["XGBoost", "goals"]
-    ax.set_title(f"XGBoost xG tracks real goal rates: {xgb_total:.0f} xG vs {goals:.0f} goals on held-out matches",
-                 loc="left", fontsize=11, color=INK)
-    ax.legend(frameon=False, loc="upper left")
+    # One panel per model: three near-identical lines on one chart are hard to tell apart.
+    panels = ["xgboost", "logistic", "statsbomb_xg"]
+    bins = {col: calibration_bins(test[TARGET], test[col]) for col in panels}
+    fig, axes = plt.subplots(1, 3, figsize=(13, 4.8), sharex=True, sharey=True)
+    for ax, col in zip(axes, panels, strict=True):
+        ax.plot([0, 0.5], [0, 0.5], color=MUTED, linestyle="--", linewidth=1, label="Perfect calibration")
+        b = bins[col]
+        ax.errorbar(b.pred, b.actual, yerr=b.ci, color=COLORS[col], marker="o", markersize=5, linewidth=2,
+                    elinewidth=1, capsize=3, label="Actual goal rate (95% interval)")
+        style(ax)
+        ax.set_aspect("equal")
+        ax.set_xlim(0, 0.5)
+        ax.set_ylim(0, 0.5)
+        ax.set_xlabel("Predicted xG", color=INK)
+        row = table.loc[MODELS[col]]
+        ax.set_title(f"{MODELS[col]}\n{row.total_xg:.0f} xG vs {row.goals:.0f} goals", loc="left",
+                     fontsize=10, color=INK)
+    axes[0].set_ylabel("Actual goal rate", color=INK)
+    axes[0].legend(frameon=False, loc="upper left", fontsize=8.5)
+    within = {col: int(((b.actual - b.pred).abs() <= b.ci).sum()) for col, b in bins.items()}
+    fig.suptitle(f"Predicted xG tracks real goal rates on held-out matches: {within['xgboost']} of "
+                 f"{len(bins['xgboost'])} XGBoost bins sit within their 95% interval of the diagonal",
+                 x=0.05, ha="left", fontsize=12, color=INK)
+    fig.text(0.05, -0.06, "Held-out test set: 7,554 shots from 311 matches, in 10 bins with equal shot counts. "
+             "Bars show the 95% interval for each bin's goal rate.", fontsize=8.5, color=MUTED)
+    fig.tight_layout(rect=(0, 0, 1, 0.95))
     fig.savefig(FIGURES_DIR / "calibration.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 

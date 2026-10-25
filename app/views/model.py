@@ -15,11 +15,11 @@ st.markdown((FIGURES_DIR / "model_results.md").read_text())
 st.caption("Lower log loss and Brier are better; higher ROC AUC is better. CV = 5-fold cross-validation "
            "grouped by match. Splits are always by match, so no match is in both training and test data.")
 
-left, right = st.columns(2)
+st.subheader("Calibrated: 0.2 xG goes in about 20% of the time")
+st.image(str(FIGURES_DIR / "calibration.png"), width="stretch")
+
+left, _ = st.columns([3, 2])
 with left:
-    st.subheader("Calibrated: 0.2 xG goes in about 20% of the time")
-    st.image(str(FIGURES_DIR / "calibration.png"), width="stretch")
-with right:
     st.subheader("Distance, angle and defenders in the way matter most")
     st.image(str(FIGURES_DIR / "shap_summary.png"), width="stretch")
 
