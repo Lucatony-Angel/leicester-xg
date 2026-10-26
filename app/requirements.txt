@@ -1,0 +1,9 @@
+# Only what the Streamlit app needs. Streamlit Community Cloud reads this file (next to the main file)
+# before the full requirements.txt at the repo root. Pins must match requirements.txt.
+altair==6.3.0
+matplotlib==3.11.2
+mplsoccer==1.8.1
+numpy==2.5.4
+pandas==3.1.0
+pyarrow==26.0.0
+streamlit==1.66.1

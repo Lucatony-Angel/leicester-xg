@@ -5,7 +5,8 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
-APP = str(Path(__file__).resolve().parents[1] / "app" / "streamlit_app.py")
+ROOT = Path(__file__).resolve().parents[1]
+APP = str(ROOT / "app" / "streamlit_app.py")
 
 
 @pytest.mark.parametrize("page", ["views/story.py", "views/team_explorer.py", "views/players.py",
@@ -54,3 +55,11 @@ def test_players_including_small_samples():
     at.selectbox[0].select(small).run()
     assert not at.exception, at.exception
     assert any("Small sample" in w.value for w in at.warning)
+
+
+def test_app_requirements_pinned_like_the_project():
+    # The deployed app installs app/requirements.txt; its pins must match the tested environment.
+    def pins(path):
+        lines = (ROOT / path).read_text().splitlines()
+        return {line.strip() for line in lines if line.strip() and not line.startswith(("#", "-r"))}
+    assert pins("app/requirements.txt") <= pins("requirements.txt")
