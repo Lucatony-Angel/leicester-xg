@@ -49,4 +49,4 @@ def expected_points(shots: pd.DataFrame, matches: pd.DataFrame, n_sims: int = N_
         rows.append({"team": m.away_team, "xpts": 3 * p_away + p_draw, "points": away_pts})
     table = pd.DataFrame(rows).groupby("team").sum()
     table["points_minus_xpts"] = table.points - table.xpts
-    return table.sort_values("points", ascending=False)
+    return table.sort_index().sort_values("points", ascending=False, kind="stable")  # stable tie-break

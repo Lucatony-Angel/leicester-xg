@@ -70,7 +70,7 @@ def share_vs_league(shots: pd.DataFrame, column: str, team: str = LEICESTER, com
         "rest_of_league_share": s[~is_team].groupby(column).xg.sum() / s[~is_team].xg.sum(),
     }).fillna(0)
     out["ratio"] = out.team_share / out.rest_of_league_share
-    return out.sort_values("team_xg", ascending=False)
+    return out.sort_index().sort_values("team_xg", ascending=False, kind="stable")
 
 
 def champion_summary(shots: pd.DataFrame, matches: pd.DataFrame, n_sims: int = 10_000) -> pd.DataFrame:
@@ -199,7 +199,8 @@ def formation_profile(shots: pd.DataFrame, minutes: pd.DataFrame, *, competition
     elif not adjust:
         weights = None
     rows = {f: per90(c.droplevel("formation"), weights, min_state_minutes) for f, c in cells.groupby("formation")}
-    return pd.DataFrame(rows).T.dropna(how="all").sort_values("minutes", ascending=False)
+    return pd.DataFrame(rows).T.dropna(how="all").sort_index().sort_values("minutes", ascending=False,
+                                                                           kind="stable")
 
 
 def team_formation_profiles(shots: pd.DataFrame, minutes: pd.DataFrame, formation: str,

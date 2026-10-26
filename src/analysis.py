@@ -71,7 +71,7 @@ def plot_goals_vs_xg(t: pd.DataFrame) -> None:
     fig, axes = plt.subplots(1, 2, figsize=(11, 6), sharey=False)
     panels = [("finishing", "Attack: goals minus xG"), ("goals_prevented", "Defense: xG against minus goals conceded")]
     for ax, (col, label) in zip(axes, panels, strict=True):
-        d = t[col].sort_values()
+        d = t[col].sort_index().sort_values(kind="stable")
         ax.barh([n.replace(" Hotspur", "").replace(" Albion", "") for n in d.index], d.values,
                 color=team_colors(d.index), height=0.75)
         ax.axvline(0, color=MUTED, linewidth=1)
@@ -112,7 +112,7 @@ def plot_simulations(sims: dict) -> None:
 
 
 def plot_expected_points(xpts: pd.DataFrame) -> None:
-    d = xpts.sort_values("points")
+    d = xpts.sort_index().sort_values("points", kind="stable")
     names = [n.replace(" Hotspur", "").replace(" Albion", "") for n in d.index]
     fig, ax = plt.subplots(figsize=(8, 7))
     ax.hlines(names, d.xpts, d.points, color=LIGHT_GRAY, linewidth=2)
@@ -141,7 +141,7 @@ FUNNEL_PANELS = [("blocks", "Blocks"), ("missed_target", "Opponents missing the 
 def plot_defense_funnel(d: pd.DataFrame) -> None:
     fig, axes = plt.subplots(1, 3, figsize=(13, 6), sharex=True)
     for ax, (col, label) in zip(axes, FUNNEL_PANELS, strict=True):
-        v = d[col].sort_values()
+        v = d[col].sort_index().sort_values(kind="stable")
         ax.barh([n.replace(" Hotspur", "").replace(" Albion", "") for n in v.index], v.values,
                 color=team_colors(v.index), height=0.75)
         ax.axvline(0, color=MUTED, linewidth=1)
@@ -283,7 +283,7 @@ def main() -> None:
         "| Team | Blocks | Missed target | Goalkeeping | Goals prevented |",
         "|---|---|---|---|---|",
         *[f"| {team} | {r.blocks:+.1f} | {r.missed_target:+.1f} | {r.goalkeeping:+.1f} | {r.goals_prevented:+.1f} |"
-          for team, r in funnel.sort_values("goals_prevented", ascending=False).iterrows()],
+          for team, r in funnel.sort_index().sort_values("goals_prevented", ascending=False, kind="stable").iterrows()],
         "",
         "## Multiple comparisons",
         "",
@@ -296,7 +296,7 @@ def main() -> None:
         "",
         "## All 20 teams",
         "",
-        t[cols].sort_values("xg_diff", ascending=False).round(3).to_markdown(),
+        t[cols].sort_index().sort_values("xg_diff", ascending=False, kind="stable").round(3).to_markdown(),
         "",
         "## Expected points",
         "",

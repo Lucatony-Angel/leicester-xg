@@ -101,8 +101,8 @@ Each stage compares what happened with what shots of the same pre-shot quality d
 | Liverpool            |   65   |       60 |                -5   |
 | Stoke City           |   45.7 |       51 |                 5.3 |
 | Chelsea              |   55.6 |       50 |                -5.6 |
-| Swansea City         |   45.5 |       47 |                 1.5 |
 | Everton              |   50.3 |       47 |                -3.3 |
+| Swansea City         |   45.5 |       47 |                 1.5 |
 | Watford              |   45.2 |       45 |                -0.2 |
 | West Bromwich Albion |   45.1 |       43 |                -2.1 |
 | AFC Bournemouth      |   48   |       42 |                -6   |

@@ -114,7 +114,7 @@ st.caption("The three stages add up to xG against minus goals conceded. PL shots
 
 st.subheader(f"{lx.points:.0f} points from {lx.xpts:.1f} expected: their chances alone rank {ordinal(xpts_rank)}")
 table = xpts.reset_index(names="team").assign(name=lambda d: d.team.map(short_name))
-order = table.sort_values("points", ascending=False).name.tolist()
+order = table.sort_values(["points", "team"], ascending=[False, True]).name.tolist()
 rule = alt.Chart(table).mark_rule(color=LIGHT_GRAY, strokeWidth=2).encode(
     y=alt.Y("name:N", sort=order, title=None),
     x=alt.X("xpts:Q", title="Points", scale=alt.Scale(zero=False)),

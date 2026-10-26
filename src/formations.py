@@ -21,7 +21,7 @@ PANELS = [
 
 
 def plot_formations(profile: pd.DataFrame, leicester: pd.Series) -> None:
-    order = profile.sort_values("xg_per90").index
+    order = profile.sort_index().sort_values("xg_per90", kind="stable").index
     fig, axes = plt.subplots(1, 4, figsize=(14, 4.8), sharey=True)
     for ax, (col, label, fmt) in zip(axes, PANELS, strict=True):
         ax.barh(order, profile.loc[order, col], color=LIGHT_GRAY, height=0.7)
@@ -137,7 +137,7 @@ def main() -> None:
         "",
         "## Every team with 900+ minutes in 4-4-2",
         "",
-        teams[cols].sort_values("xg_per90", ascending=False).round(3).to_markdown(),
+        teams[cols].sort_index().sort_values("xg_per90", ascending=False, kind="stable").round(3).to_markdown(),
         "",
     ]
     (FIGURES_DIR / "formations_results.md").write_text("\n".join(lines))

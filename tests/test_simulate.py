@@ -48,3 +48,13 @@ def test_expected_points_ignore_row_order():
 def test_goal_simulation_ignores_shot_order():
     xg = np.array([0.05, 0.6, 0.3, 0.12, 0.45])
     assert (simulate_goals(xg) == simulate_goals(xg[::-1])).all()
+
+
+def test_expected_points_ties_sorted_the_same_on_every_platform():
+    # A and B finish level on points; their order must not depend on input order or sort algorithm.
+    matches = pd.DataFrame({"match_id": [1, 2], "home_team": ["B", "A"], "away_team": ["C", "C"],
+                            "home_score": [1, 1], "away_score": [0, 0]})
+    shots = pd.DataFrame({"match_id": [1, 2], "team": ["B", "A"], "xg": [0.3, 0.3]})
+    forward = expected_points(shots, matches, n_sims=500)
+    backward = expected_points(shots.iloc[::-1], matches.iloc[::-1], n_sims=500)
+    assert list(forward.index) == list(backward.index) == ["A", "B", "C"]
