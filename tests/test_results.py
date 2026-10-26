@@ -29,7 +29,7 @@ RESULT_VALUES = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", RESULTS.replac
 
 
 def test_readme_links_exist():
-    links = re.findall(r"\]\(((?!https?://)[^)#]+)\)", README)
+    links = re.findall(r"\]\(((?!https?://)[^)#]+)\)", README) + re.findall(r'src="((?!https?://)[^"]+)"', README)
     assert links
     missing = [link for link in links if not (ROOT / link).exists()]
     assert not missing, missing

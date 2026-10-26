@@ -22,6 +22,6 @@ with st.sidebar:
     st.caption("An expected goals model on the 2015/16 season. "
                "Data provided by [StatsBomb](https://github.com/statsbomb/open-data).")
     if LOGO.exists():    # StatsBomb's terms ask for their logo; add the file from their media pack
-        st.image(str(LOGO), width=140)
+        st.image(str(LOGO), width=72)
 
 page.run()

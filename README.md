@@ -30,6 +30,8 @@ This wasn't how champions usually win. Barcelona, Juventus and PSG out-shot thei
 
 **Data provided by StatsBomb.**
 
+<img src="figures/statsbomb_logo.png" alt="StatsBomb" width="80">
+
 ## Method
 
 **Features** (14 per shot, built in SQL with DuckDB except for the freeze frame geometry):
