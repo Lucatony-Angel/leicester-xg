@@ -95,8 +95,8 @@ if game_state is None:
         lei_note = " Leicester in blue." if LEICESTER in teams.team.values else ""
         st.subheader(f"Teams that played {formation} for 900+ minutes")
         dots = alt.Chart(teams).mark_circle(opacity=1, stroke="white", strokeWidth=1).encode(
-            x=alt.X("shots_per90:Q", title=f"Shots per 90 in {formation}", scale=alt.Scale(zero=False)),
-            y=alt.Y("xg_per_shot:Q", title=f"xG per shot in {formation}", scale=alt.Scale(zero=False)),
+            x=alt.X("shots_per90:Q", title=f"Shots per 90 in {formation}", scale=alt.Scale(zero=False, padding=16)),
+            y=alt.Y("xg_per_shot:Q", title=f"xG per shot in {formation}", scale=alt.Scale(zero=False, padding=16)),
             size=alt.Size("minutes:Q", legend=None, scale=alt.Scale(range=[40, 300])),
             color=alt.condition(alt.datum.team == LEICESTER, alt.value(LEICESTER_BLUE), alt.value(GRAY)),
             tooltip=[alt.Tooltip("team:N", title="Team"), alt.Tooltip("minutes:Q", title="Minutes", format=",.0f"),

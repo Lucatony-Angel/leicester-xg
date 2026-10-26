@@ -48,8 +48,8 @@ st.subheader(f"Mid-table volume ({ordinal(rank(t, 'shots_per_match'))}), "
              f"{ordinal(rank(t, 'xg_per_shot'))}-best chance quality")
 teams = t.reset_index(names="team").assign(name=lambda d: d.team.map(short_name))
 base = alt.Chart(teams).encode(
-    x=alt.X("shots_per_match:Q", title="Shots per match (volume)", scale=alt.Scale(zero=False)),
-    y=alt.Y("xg_per_shot:Q", title="xG per shot (quality)", scale=alt.Scale(zero=False)),
+    x=alt.X("shots_per_match:Q", title="Shots per match (volume)", scale=alt.Scale(zero=False, padding=16)),
+    y=alt.Y("xg_per_shot:Q", title="xG per shot (quality)", scale=alt.Scale(zero=False, padding=16)),
 )
 points = base.mark_circle(stroke="white", strokeWidth=1.5, opacity=1).encode(
     color=alt.condition(alt.datum.team == LEICESTER, alt.value(LEICESTER_BLUE), alt.value(GRAY)),

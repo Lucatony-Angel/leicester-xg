@@ -4,7 +4,7 @@
 
 An expected goals (xG) model built from free StatsBomb event data, used to answer one question: **how did a 5000-to-1 underdog win the league: shot quality, shot volume, or finishing luck?**
 
-**Live app:** coming soon
+**Live app:** [leicester-xg.streamlit.app](https://leicester-xg.streamlit.app/)
 
 ![Leicester took mid-table shot volume but created the 2nd-best chances in the league](figures/team_scatter.png)
 
