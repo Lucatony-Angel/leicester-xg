@@ -21,7 +21,8 @@ from team_stats import (
 )
 
 README = (ROOT / "README.md").read_text()
-DOCS = README + (ROOT / "docs" / "interview_prep.md").read_text()
+PREP = ROOT / "docs" / "interview_prep.md"    # kept local only (gitignored), so CI checks just the README
+DOCS = README + (PREP.read_text() if PREP.exists() else "")
 RESULTS = " ".join(p.read_text() for p in FIGURES.glob("*.md"))
 # Numbers that describe the project or illustrate a concept rather than report a result.
 NOT_RESULTS = {"3.11", "3.13", "5.4", "0.2", "20%", "84%", "92%", "90%", "9.5%"}
@@ -41,7 +42,7 @@ def test_every_figure_in_readme_is_generated():
 
 
 def readme_numbers():
-    # The README and the interview prep both quote results, so both are checked.
+    # The README and the interview prep (when present) both quote results, so both are checked.
     return sorted(set(re.findall(r"(?<![\w.,])[−+-]?\d+\.\d+%?|(?<![\w.])\d+%", DOCS)))
 
 

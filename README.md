@@ -178,7 +178,6 @@ sql/            shots, features, game state, formations, formation minutes (Duck
 src/            download, build, freeze frame features, train, shot funnel, evaluate, simulate, analysis, champions, formations
 app/            Streamlit app (reads data/processed/ and figures/ only)
 tests/          data, model, analysis, reproducibility, README and app tests
-docs/           interview prep
 data/processed/ shots_with_xg, matches, formation_minutes, funnel, champions (used by the app)
 figures/        charts and results tables
 models/         trained models

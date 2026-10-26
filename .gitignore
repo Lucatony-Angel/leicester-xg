@@ -6,3 +6,6 @@ __pycache__/
 .DS_Store
 data/processed/*_predictions.parquet
 .coverage
+
+# Personal notes, kept local
+docs/
